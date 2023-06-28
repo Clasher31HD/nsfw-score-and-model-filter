@@ -1,5 +1,6 @@
 import shutil
 from pathlib import Path
+import PIL
 from PIL import Image
 import numpy as np
 import opennsfw2 as n2
@@ -48,13 +49,17 @@ def get_folder_name(value, ranges):
 
 
 def is_nsfw(image_path):
-    # Load image and resize to maximum of 512 pixels
-    img = Image.open(image_path)
-    img.thumbnail((512, 512))
+    try:
+        # Load image and resize to maximum of 512 pixels
+        img = Image.open(image_path)
+        img.thumbnail((512, 512))
 
-    # Check NSFW probability using the NSFW detector
-    nsfw_probability = n2.predict_image(image_path)
-    return nsfw_probability
+        # Check NSFW probability using the NSFW detector
+        nsfw_probability = n2.predict_image(image_path)
+        return nsfw_probability
+    except (PIL.UnidentifiedImageError, OSError) as e:
+        print(f"Skipping image '{image_path.name}' due to an error: {str(e)}")
+        return None
 
 
 def get_image_score(image_path):
