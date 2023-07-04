@@ -42,7 +42,7 @@ score_range_type = None
 move_or_copy = None
 
 # Define the regular expression pattern for invalid characters
-invalid_folder_name_chars_pattern = r'[<>:"/\\|?*]'
+invalid_chars_pattern = r'[<>:"/\\|?*#,.;()]'
 
 # Constants for NSFW ranges
 NSFW_RANGES = [
@@ -237,8 +237,8 @@ def extract_parameters(file_path):
         result = params.split("Steps:", 1)[0].strip()
     else:
         exit("Error 6")
-    cleaned_result = re.sub(invalid_folder_name_chars_pattern, '', result)
-    separated_list = re.split(r'[,./:;()]', cleaned_result)
+    cleaned_result = re.sub(invalid_chars_pattern, '', result)
+    separated_list = cleaned_result.split()
     # Remove list items with only whitespaces
     parameter_list = [item.strip() for item in separated_list if item.strip()]
     return parameter_list
