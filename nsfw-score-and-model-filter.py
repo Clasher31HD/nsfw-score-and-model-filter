@@ -446,6 +446,11 @@ for idx, file_path in enumerate(image_files):
                         print(f"Image: {file_path.name} -> Move to folder: {new_output_folder}")
                         shutil.copy(file_path, destination_file_path)
                         print(f"Copied image to {destination_file_path}")
+                elif not parameters_found:
+                    print("No Matching parameter(s) found. Skipping image")
+                else:
+                    exit("Error 8")
+
             else:
                 for parameter in parameter_list:
                     if own_parameters is None or parameter in own_parameters:
