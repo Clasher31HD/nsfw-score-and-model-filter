@@ -429,9 +429,6 @@ for idx, file_path in enumerate(image_files):
                         print(f"Image: {file_path.name} -> Move to folder: {new_output_folder}")
                         shutil.copy(file_path, destination_file_path)
                         print(f"Copied image to {destination_file_path}")
-                else:
-                    exit("Error 7")
-
         else:
             print("Invalid mode entered.")
     else:
