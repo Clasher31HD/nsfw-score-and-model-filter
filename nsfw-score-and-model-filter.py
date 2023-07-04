@@ -239,13 +239,18 @@ def extract_parameters(file_path):
         exit("Error 6")
     cleaned_result = re.sub(invalid_chars_pattern, '', result)
 
-    # Check if the cleaned result contains commas
-    if ',' not in cleaned_result:
+    if split_words:
+        removed_commas = re.sub(invalid_chars_pattern, '', cleaned_result)
         # Split the cleaned folder name by whitespaces and remove invalid characters
-        separate_list = re.split(r'\s+', cleaned_result)
+        separate_list = re.split(r'\s+', removed_commas)
     else:
-        # Split the cleaned folder name by commas and remove invalid characters
-        separate_list = re.split(r',', cleaned_result)
+        # Check if the cleaned result contains commas
+        if ',' not in cleaned_result:
+            # Split the cleaned folder name by whitespaces and remove invalid characters
+            separate_list = re.split(r'\s+', cleaned_result)
+        else:
+            # Split the cleaned folder name by commas and remove invalid characters
+            separate_list = re.split(r',', cleaned_result)
 
     parameter_list = [item.strip() for item in separate_list if item.strip() and len(item.strip()) <= 100]
     return parameter_list
@@ -276,6 +281,15 @@ while True:
                               "to continue? (y = yes, n = no): ")
             if yes_or_no == "y" or yes_or_no == "n":
                 flag = True
+                break
+            print("Invalid answer. Please try again.\n")
+        while True:
+            split_words_input = input("Do you wanna split each word? (y = yes, n = no): ")
+            if split_words_input == "y":
+                split_words = True
+                break
+            elif split_words_input == "n":
+                split_words = False
                 break
             print("Invalid answer. Please try again.\n")
         break
