@@ -42,7 +42,7 @@ score_range_type = None
 move_or_copy = None
 
 # Define the regular expression pattern for invalid characters
-invalid_chars_pattern = r'[<>:"/\\|?*#,.;()]'
+invalid_chars_pattern = r'[<>:"/\\|?*().;#]'
 
 # Constants for NSFW ranges
 NSFW_RANGES = [
@@ -238,9 +238,16 @@ def extract_parameters(file_path):
     else:
         exit("Error 6")
     cleaned_result = re.sub(invalid_chars_pattern, '', result)
-    separated_list = cleaned_result.split()
-    # Remove list items with only whitespaces
-    parameter_list = [item.strip() for item in separated_list if item.strip()]
+
+    # Check if the cleaned result contains commas
+    if ',' not in cleaned_result:
+        # Split the cleaned folder name by whitespaces and remove invalid characters
+        separate_list = re.split(r'\s+', cleaned_result)
+    else:
+        # Split the cleaned folder name by commas and remove invalid characters
+        separate_list = re.split(r'[,./:;()]', cleaned_result)
+
+    parameter_list = [item.strip() for item in separate_list if item.strip()]
     return parameter_list
 
 
