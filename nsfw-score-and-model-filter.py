@@ -39,6 +39,7 @@ score_folder_name = None
 model_folder_name = None
 parameter_list = None
 score_range_type = None
+move_or_copy = None
 
 # Define the regular expression pattern for invalid characters
 invalid_folder_name_chars_pattern = r'[<>:"/\\|?*]'
