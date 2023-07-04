@@ -232,13 +232,15 @@ def extract_parameters(file_path):
     metadata = image.info
     params = metadata.get("parameters", "")
     if "Negative prompt:" in params:
-        result = params.split("Steps:", 1)[0].strip()
-    elif "Steps:" in params:
         result = params.split("Negative prompt:", 1)[0].strip()
+    elif "Steps:" in params:
+        result = params.split("Steps:", 1)[0].strip()
     else:
         exit("Error 6")
     cleaned_result = re.sub(invalid_folder_name_chars_pattern, '', result)
-    parameter_list = re.split(r'[,./:;]', cleaned_result)
+    separated_list = re.split(r'[,./:;()]', cleaned_result)
+    # Remove list items with only whitespaces
+    parameter_list = [item.strip() for item in separated_list if item.strip()]
     return parameter_list
 
 
