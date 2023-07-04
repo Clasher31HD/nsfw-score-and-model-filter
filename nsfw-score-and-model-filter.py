@@ -2,9 +2,17 @@ import shutil
 from pathlib import Path
 import PIL
 from PIL import Image
+import re
 import numpy as np
 import opennsfw2 as n2
-from tensorflow.keras.applications import (Xception, VGG16, VGG19, ResNet50, ResNet50V2, ResNet101, ResNet101V2, ResNet152, ResNet152V2, InceptionV3, InceptionResNetV2, MobileNet, MobileNetV2, DenseNet121, DenseNet169, DenseNet201, NASNetMobile, NASNetLarge, EfficientNetB0, EfficientNetB1, EfficientNetB2, EfficientNetB3, EfficientNetB4, EfficientNetB5, EfficientNetB6, EfficientNetB7, EfficientNetV2B0, EfficientNetV2B1, EfficientNetV2B2, EfficientNetV2B3, EfficientNetV2S, EfficientNetV2M, EfficientNetV2L, ConvNeXtTiny, ConvNeXtSmall, ConvNeXtBase, ConvNeXtLarge, ConvNeXtXLarge)
+from tensorflow.keras.applications import (Xception, VGG16, VGG19, ResNet50, ResNet50V2, ResNet101, ResNet101V2,
+                                           ResNet152, ResNet152V2, InceptionV3, InceptionResNetV2, MobileNet,
+                                           MobileNetV2, DenseNet121, DenseNet169, DenseNet201, NASNetMobile,
+                                           NASNetLarge, EfficientNetB0, EfficientNetB1, EfficientNetB2, EfficientNetB3,
+                                           EfficientNetB4, EfficientNetB5, EfficientNetB6, EfficientNetB7,
+                                           EfficientNetV2B0, EfficientNetV2B1, EfficientNetV2B2, EfficientNetV2B3,
+                                           EfficientNetV2S, EfficientNetV2M, EfficientNetV2L, ConvNeXtTiny,
+                                           ConvNeXtSmall, ConvNeXtBase, ConvNeXtLarge, ConvNeXtXLarge)
 from tensorflow.keras.applications.xception import preprocess_input as xception_preprocess_input
 from tensorflow.keras.applications.resnet import preprocess_input as resnet_preprocess_input
 from tensorflow.keras.applications.resnet_v2 import preprocess_input as resnetv2_preprocess_input
@@ -29,6 +37,8 @@ app = QApplication([])
 nsfw_folder_name = None
 score_folder_name = None
 model_folder_name = None
+parameter_list = None
+score_range_type = None
 
 # Constants for NSFW ranges
 NSFW_RANGES = [
@@ -60,7 +70,8 @@ SCORE_RANGES_BIG = [
     (8, 10)
 ]
 
-SMALL_SCORE_MODELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33]
+SMALL_SCORE_MODELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27,
+                      28, 29, 30, 31, 32, 33]
 BIG_SCORE_MODELS = [34, 35, 36, 37, 38]
 
 # Model selection dictionary
@@ -212,16 +223,31 @@ def extract_model_name(file_path):
     return model_name
 
 
+def extract_parameters(file_path):
+    image = Image.open(file_path)
+    metadata = image.info
+    params = metadata.get("parameters", "")
+    result = params.split("Steps:", 1)[0].strip()
+    parameter_list = re.split(r'[,.]', result)
+    return parameter_list
+
+
 while True:
     mode = input("Enter Mode:\n1 = NSFW\n2 = Score\n3 = Model\n4 = NSFW/Model\n5 = NSFW/Score\n6 = Score/NSFW\n7 = "
                  "Score/Model\n8 = Model/NSFW\n9 = Model/Score\n10 = NSFW/Score/Model\n11 = NSFW/Model/Score\n12 = "
-                 "Score/NSFW/Model\n13 = Score/Model/NSFW\n14 = Model/NSFW/Score\n15 = Model/Score/NSFW\nSelected "
-                 "Mode: ")
+                 "Score/NSFW/Model\n13 = Score/Model/NSFW\n14 = Model/NSFW/Score\n15 = Model/Score/NSFW\n16 = "
+                 "Parameter (Experimental)\nSelected Mode: ")
 
     if mode in [str(i) for i in range(1, 16)]:
         mode = int(mode)
         break
-
+    elif mode == 16:
+        while True:
+            yes_or_no = input("This mode is experimental and creates a lot of duplicate files.\nAre you sure you want "
+                              "to continue? (y = yes, n = no): ")
+            if yes_or_no == "y" or yes_or_no == "n":
+                break
+            print("Invalid answer. Please try again.\n")
     print("Invalid mode selected. Please try again.\n")
 
 if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
@@ -282,7 +308,6 @@ while True:
 
     print("Invalid mode selected. Please try again.\n")
 
-
 # Count the total number of images in the input folder
 valid_extensions = ('.png', '.jpg', '.jpeg')
 image_files = [file_path for file_path in input_folder.rglob('*') if file_path.suffix.lower() in valid_extensions]
@@ -291,7 +316,7 @@ total_images = len(image_files)
 for idx, file_path in enumerate(image_files):
     # Check if the file is a valid image
     if file_path.suffix.lower() in valid_extensions:
-        print(f"\nAnalyzing image {idx+1}/{total_images}\n{file_path.name}")
+        print(f"\nAnalyzing image {idx + 1}/{total_images}\n{file_path.name}")
         if mode in [1, 4, 5, 6, 8, 10, 11, 12, 13, 14, 15]:
             # Check if the image is NSFW
             nsfw_probability = is_nsfw(file_path)
@@ -311,6 +336,10 @@ for idx, file_path in enumerate(image_files):
             model_name = extract_model_name(file_path)
             print(f"Model: {model_name}")
             model_folder_name = model_name
+
+        if mode in [16]:
+            parameter_list = extract_parameters(file_path)
+            print(f"Parameters: {parameter_list}")
 
         mode_folders = {
             1: [nsfw_folder_name],
@@ -350,6 +379,15 @@ for idx, file_path in enumerate(image_files):
 
             else:
                 print(f"Skipped image '{file_path.name}' as it already exists in the destination folder.")
+        elif mode == 16:
+            new_output_folder = output_folder
+            for parameter in parameter_list:
+                new_output_folder = new_output_folder / parameter
+                new_output_folder.mkdir(parents=True, exist_ok=True)
+                destination_file_path = new_output_folder / file_path.name
+                if not destination_file_path.exists():
+                    shutil.copy(file_path, destination_file_path)
+                    print(f"Copied image to {destination_file_path}")
         else:
             print("Invalid mode entered.")
     else:
