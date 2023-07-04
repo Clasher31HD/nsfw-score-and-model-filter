@@ -239,18 +239,13 @@ def extract_parameters(file_path):
         exit("Error 6")
     cleaned_result = re.sub(invalid_chars_pattern, '', result)
 
-    if split_words:
-        removed_commas = re.sub(invalid_chars_pattern, '', cleaned_result)
+    if ',' not in cleaned_result or split_words:
         # Split the cleaned folder name by whitespaces and remove invalid characters
+        removed_commas = re.sub(invalid_chars_pattern, '', cleaned_result)
         separate_list = re.split(r'\s+', removed_commas)
     else:
-        # Check if the cleaned result contains commas
-        if ',' not in cleaned_result:
-            # Split the cleaned folder name by whitespaces and remove invalid characters
-            separate_list = re.split(r'\s+', cleaned_result)
-        else:
-            # Split the cleaned folder name by commas and remove invalid characters
-            separate_list = re.split(r',', cleaned_result)
+        # Split the cleaned folder name by commas and remove invalid characters
+        separate_list = re.split(r',', cleaned_result)
 
     parameter_list = [item.strip() for item in separate_list if item.strip() and len(item.strip()) <= 100]
     return parameter_list
