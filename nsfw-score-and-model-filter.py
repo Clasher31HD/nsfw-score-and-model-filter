@@ -241,7 +241,7 @@ def extract_parameters(file_path):
 
     if ',' not in cleaned_result or split_words:
         # Split the cleaned folder name by whitespaces and remove invalid characters
-        removed_commas = re.sub(invalid_chars_pattern, '', cleaned_result)
+        removed_commas = re.sub(r',', '', cleaned_result)
         separate_list = re.split(r'\s+', removed_commas)
     else:
         # Split the cleaned folder name by commas and remove invalid characters
