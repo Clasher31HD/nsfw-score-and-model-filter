@@ -29,6 +29,7 @@ from tensorflow.keras.applications.efficientnet_v2 import preprocess_input as ef
 from tensorflow.keras.applications.convnext import preprocess_input as convnext_preprocess_input
 from tensorflow.keras.preprocessing import image
 from PyQt5.QtWidgets import QApplication, QFileDialog
+from  PyQt5.QtCore import Qt
 
 # Create the application
 app = QApplication([])
@@ -42,7 +43,7 @@ score_range_type = None
 move_or_copy = None
 
 # Define the regular expression pattern for invalid characters
-invalid_chars_pattern = r'[<>:"/\\|?*().;#{}[\]\n]'
+invalid_chars_pattern = r'[<>:"-_/\\|?*().;#{}[\]\n]'
 
 # Constants for NSFW ranges
 NSFW_RANGES = [
@@ -254,10 +255,14 @@ def extract_parameters(file_path):
 def get_folder_path(message):
     while True:
         print(message)
-        folder_path = Path(QFileDialog.getExistingDirectory(None, message))
+        folder_path_input = QFileDialog().getExistingDirectory(None, message)
 
-        if folder_path:
+        if folder_path_input:
+            folder_path = Path(folder_path_input)
             return folder_path
+        else:
+            print("Invalid input selected. Please try again.\n")
+
 
 
 while True:
@@ -420,3 +425,5 @@ for idx, file_path in enumerate(image_files):
         print(f"Skipping non-image file: {file_path.name}")
 
 print("Image analysis and sorting complete.")
+
+app.exec_()
