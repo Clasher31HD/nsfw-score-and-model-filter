@@ -42,6 +42,7 @@ parameter_list = None
 score_range_type = None
 move_or_copy = None
 own_parameters = None
+strict_parameters = None
 
 # Define the regular expression pattern for invalid characters
 invalid_chars_pattern = r'[<>:"-_/\\|?*().;#{}[\]\n]'
@@ -288,6 +289,16 @@ while True:
                 own_parameters = input("Type your filter parameters separated by commas (,): ")
                 own_parameters = own_parameters.replace(" ", "")  # Remove any spaces in the input
                 own_parameters = own_parameters.split(",")  # Split the input at each comma
+                while True:
+                    strict_parameters_input = input("Do you wanna filter by strictly all parameters? (y = yes, "
+                                                    "n = no): ")
+                    if strict_parameters_input == "y":
+                        strict_parameters = True
+                        break
+                    elif strict_parameters_input == "n":
+                        strict_parameters = False
+                        break
+                    print("Invalid answer. Please try again.\n")
                 break
             elif own_parameters_input == "n":
                 own_parameters = None
@@ -420,15 +431,33 @@ for idx, file_path in enumerate(image_files):
                 print(f"Skipped image '{file_path.name}' as it already exists in the destination folder.")
 
         elif mode == 16:
-            for parameter in parameter_list:
-                if own_parameters is None or parameter in own_parameters:
-                    new_output_folder = output_folder / parameter
+            if strict_parameters:
+                parameters_found = True
+                for parameter in own_parameters:
+                    if parameter not in parameter_list:
+                        parameters_found = False
+                        break
+
+                if parameters_found:
+                    folder_name = "_".join(own_parameters)  # Concatenate parameters with underscores
+                    new_output_folder = output_folder / folder_name
                     new_output_folder.mkdir(parents=True, exist_ok=True)
                     destination_file_path = new_output_folder / file_path.name
                     if not destination_file_path.exists():
                         print(f"Image: {file_path.name} -> Move to folder: {new_output_folder}")
                         shutil.copy(file_path, destination_file_path)
                         print(f"Copied image to {destination_file_path}")
+            else:
+                for parameter in parameter_list:
+                    if own_parameters is None or parameter in own_parameters:
+                        new_output_folder = output_folder / parameter
+                        new_output_folder.mkdir(parents=True, exist_ok=True)
+                        destination_file_path = new_output_folder / file_path.name
+                        if not destination_file_path.exists():
+                            print(f"Image: {file_path.name} -> Move to folder: {new_output_folder}")
+                            shutil.copy(file_path, destination_file_path)
+                            print(f"Copied image to {destination_file_path}")
+
         else:
             print("Invalid mode entered.")
     else:
