@@ -251,6 +251,7 @@ while True:
         mode = int(mode)
         break
     elif mode == "16":
+        mode = int(mode)
         while True:
             yes_or_no = input("This mode is experimental and creates a lot of duplicate files.\nAre you sure you want "
                               "to continue? (y = yes, n = no): ")
@@ -294,15 +295,15 @@ input_folder = get_folder_path("Choose your input folder")
 # Define output directory
 output_folder = get_folder_path("Choose your output folder")
 
+if mode != 16:
+    while True:
+        move_or_copy = input("Do you wanna move or copy the files?\n1 = Move\n2 = Copy\nSelected mode: ")
 
-while True:
-    move_or_copy = input("Do you wanna move or copy the files?\n1 = Move\n2 = Copy\nSelected mode: ")
+        if move_or_copy == "1" or move_or_copy == "2":
+            move_or_copy = int(move_or_copy)
+            break
 
-    if move_or_copy == "1" or move_or_copy == "2":
-        move_or_copy = int(move_or_copy)
-        break
-
-    print("Invalid mode selected. Please try again.\n")
+        print("Invalid mode selected. Please try again.\n")
 
 # Count the total number of images in the input folder
 valid_extensions = ('.png', '.jpg', '.jpeg')
@@ -372,9 +373,9 @@ for idx, file_path in enumerate(image_files):
                     print(f"Copied image to {destination_file_path}")
                 else:
                     exit("Error 4")
-
             else:
                 print(f"Skipped image '{file_path.name}' as it already exists in the destination folder.")
+
         elif mode == 16:
             new_output_folder = output_folder
             for parameter in parameter_list:
