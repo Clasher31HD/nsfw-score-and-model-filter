@@ -232,6 +232,15 @@ def extract_parameters(file_path):
     return parameter_list
 
 
+def get_folder_path(message):
+    while True:
+        print(message)
+        folder_path = Path(QFileDialog.getExistingDirectory(None, message))
+
+        if folder_path:
+            return folder_path
+
+
 while True:
     mode = input("Enter Mode:\n1 = NSFW\n2 = Score\n3 = Model\n4 = NSFW/Model\n5 = NSFW/Score\n6 = Score/NSFW\n7 = "
                  "Score/Model\n8 = Model/NSFW\n9 = Model/Score\n10 = NSFW/Score/Model\n11 = NSFW/Model/Score\n12 = "
@@ -278,26 +287,11 @@ if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
         exit("Error 3")
 
 # Define input directory
-while True:
-    print("Choose your input folder")
-    input_folder = QFileDialog.getExistingDirectory(None, "Select input folder")
-
-    if input_folder:
-        break
-
-# Convert input_folder to a Path object
-input_folder = Path(input_folder)
+input_folder = get_folder_path("Choose your input folder")
 
 # Define output directory
-while True:
-    print("Choose your output folder")
-    output_folder = QFileDialog.getExistingDirectory(None, "Select output folder")
+output_folder = get_folder_path("Choose your output folder")
 
-    if output_folder:
-        break
-
-# Convert output_folder to a Path object
-output_folder = Path(output_folder)
 
 while True:
     move_or_copy = input("Do you wanna move or copy the files?\n1 = Move\n2 = Copy\nSelected mode: ")
