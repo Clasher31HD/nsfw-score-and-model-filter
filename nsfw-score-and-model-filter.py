@@ -42,7 +42,7 @@ score_range_type = None
 move_or_copy = None
 
 # Define the regular expression pattern for invalid characters
-invalid_chars_pattern = r'[<>:"/\\|?*().;#]'
+invalid_chars_pattern = r'[<>:"/\\|?*().;#{}[]]'
 
 # Constants for NSFW ranges
 NSFW_RANGES = [
@@ -245,9 +245,9 @@ def extract_parameters(file_path):
         separate_list = re.split(r'\s+', cleaned_result)
     else:
         # Split the cleaned folder name by commas and remove invalid characters
-        separate_list = re.split(r'[,./:;()]', cleaned_result)
+        separate_list = re.split(r',', cleaned_result)
 
-    parameter_list = [item.strip() for item in separate_list if item.strip()]
+    parameter_list = [item.strip() for item in separate_list if item.strip() and len(item.strip()) <= 100]
     return parameter_list
 
 
