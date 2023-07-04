@@ -41,6 +41,7 @@ model_folder_name = None
 parameter_list = None
 score_range_type = None
 move_or_copy = None
+own_parameters = None
 
 # Define the regular expression pattern for invalid characters
 invalid_chars_pattern = r'[<>:"-_/\\|?*().;#{}[\]\n]'
@@ -264,7 +265,6 @@ def get_folder_path(message):
             print("Invalid input selected. Please try again.\n")
 
 
-
 while True:
     mode = input("Enter Mode:\n1 = NSFW\n2 = Score\n3 = Model\n4 = NSFW/Model\n5 = NSFW/Score\n6 = Score/NSFW\n7 = "
                  "Score/Model\n8 = Model/NSFW\n9 = Model/Score\n10 = NSFW/Score/Model\n11 = NSFW/Model/Score\n12 = "
@@ -280,11 +280,21 @@ while True:
             yes_or_no = input("This mode is experimental and creates a lot of duplicate files.\nAre you sure you want "
                               "to continue? (y = yes, n = no): ")
             if yes_or_no == "y" or yes_or_no == "n":
-                flag = True
                 break
             print("Invalid answer. Please try again.\n")
         while True:
-            split_words_input = input("Do you wanna split each word? (y = yes, n = no): ")
+            own_parameters_input = input("Do you wanna filter by own parameters? (y = yes, n = no): ")
+            if own_parameters_input == "y":
+                own_parameters = input("Type your filter parameters separated by commas (,): ")
+                own_parameters = own_parameters.replace(" ", "")  # Remove any spaces in the input
+                own_parameters = own_parameters.split(",")  # Split the input at each comma
+                break
+            elif own_parameters_input == "n":
+                own_parameters = None
+                break
+            print("Invalid answer. Please try again.\n")
+        while True:
+            split_words_input = input("Do you wanna split each word from existing images? (y = yes, n = no): ")
             if split_words_input == "y":
                 split_words = True
                 break
@@ -411,14 +421,15 @@ for idx, file_path in enumerate(image_files):
 
         elif mode == 16:
             for parameter in parameter_list:
-                new_output_folder = output_folder
-                new_output_folder = new_output_folder / parameter
-                new_output_folder.mkdir(parents=True, exist_ok=True)
-                destination_file_path = new_output_folder / file_path.name
-                if not destination_file_path.exists():
-                    print(f"Image: {file_path.name} -> Move to folder: {new_output_folder}")
-                    shutil.copy(file_path, destination_file_path)
-                    print(f"Copied image to {destination_file_path}")
+                if own_parameters is None or parameter in own_parameters:
+                    new_output_folder = output_folder / parameter
+                    new_output_folder.mkdir(parents=True, exist_ok=True)
+                    destination_file_path = new_output_folder / file_path.name
+                    if not destination_file_path.exists():
+                        print(f"Image: {file_path.name} -> Move to folder: {new_output_folder}")
+                        shutil.copy(file_path, destination_file_path)
+                        print(f"Copied image to {destination_file_path}")
+
         else:
             print("Invalid mode entered.")
     else:
