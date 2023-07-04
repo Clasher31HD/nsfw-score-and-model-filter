@@ -40,6 +40,9 @@ model_folder_name = None
 parameter_list = None
 score_range_type = None
 
+# Define the regular expression pattern for invalid characters
+invalid_folder_name_chars_pattern = r'[<>:"/\\|?*]'
+
 # Constants for NSFW ranges
 NSFW_RANGES = [
     (0.0, 0.2),
@@ -227,8 +230,14 @@ def extract_parameters(file_path):
     image = Image.open(file_path)
     metadata = image.info
     params = metadata.get("parameters", "")
-    result = params.split("Steps:", 1)[0].strip()
-    parameter_list = re.split(r'[,.]', result)
+    if "Negative prompt:" in params:
+        result = params.split("Steps:", 1)[0].strip()
+    elif "Steps:" in params:
+        result = params.split("Negative prompt:", 1)[0].strip()
+    else:
+        exit("Error 6")
+    cleaned_result = re.sub(invalid_folder_name_chars_pattern, '', result)
+    parameter_list = re.split(r'[,./:;]', cleaned_result)
     return parameter_list
 
 
@@ -377,12 +386,13 @@ for idx, file_path in enumerate(image_files):
                 print(f"Skipped image '{file_path.name}' as it already exists in the destination folder.")
 
         elif mode == 16:
-            new_output_folder = output_folder
             for parameter in parameter_list:
+                new_output_folder = output_folder
                 new_output_folder = new_output_folder / parameter
                 new_output_folder.mkdir(parents=True, exist_ok=True)
                 destination_file_path = new_output_folder / file_path.name
                 if not destination_file_path.exists():
+                    print(f"Image: {file_path.name} -> Move to folder: {new_output_folder}")
                     shutil.copy(file_path, destination_file_path)
                     print(f"Copied image to {destination_file_path}")
         else:
