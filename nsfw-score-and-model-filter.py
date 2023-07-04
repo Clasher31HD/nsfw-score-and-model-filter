@@ -250,7 +250,7 @@ while True:
     if mode in [str(i) for i in range(1, 16)]:
         mode = int(mode)
         break
-    elif mode == 16:
+    elif mode == "16":
         while True:
             yes_or_no = input("This mode is experimental and creates a lot of duplicate files.\nAre you sure you want "
                               "to continue? (y = yes, n = no): ")
