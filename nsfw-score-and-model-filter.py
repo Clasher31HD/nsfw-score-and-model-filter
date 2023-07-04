@@ -29,7 +29,6 @@ from tensorflow.keras.applications.efficientnet_v2 import preprocess_input as ef
 from tensorflow.keras.applications.convnext import preprocess_input as convnext_preprocess_input
 from tensorflow.keras.preprocessing import image
 from PyQt5.QtWidgets import QApplication, QFileDialog
-from  PyQt5.QtCore import Qt
 
 # Create the application
 app = QApplication([])
@@ -464,5 +463,3 @@ for idx, file_path in enumerate(image_files):
         print(f"Skipping non-image file: {file_path.name}")
 
 print("Image analysis and sorting complete.")
-
-app.exec_()
