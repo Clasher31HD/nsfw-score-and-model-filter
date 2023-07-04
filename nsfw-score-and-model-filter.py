@@ -463,3 +463,4 @@ for idx, file_path in enumerate(image_files):
         print(f"Skipping non-image file: {file_path.name}")
 
 print("Image analysis and sorting complete.")
+exit()
