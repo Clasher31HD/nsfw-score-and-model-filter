@@ -18,7 +18,7 @@ from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mobil
 from tensorflow.keras.applications.nasnet import preprocess_input as nasnet_preprocess_input
 from tensorflow.keras.applications.efficientnet import preprocess_input as efficientnet_preprocess_input
 from tensorflow.keras.applications.efficientnet_v2 import preprocess_input as efficientnetv2_preprocess_input
-from tensorflow.keras.applications.resnet import preprocess_input
+from tensorflow.keras.applications.convnext import preprocess_input as convnext_preprocess_input
 from tensorflow.keras.preprocessing import image
 from PyQt5.QtWidgets import QApplication, QFileDialog
 
@@ -157,7 +157,8 @@ def get_image_score(image_path):
     elif model_type in [26]:
         img = image.load_img(image_path, target_size=(600, 600))
     else:
-        img = image.load_img(image_path, target_size=(224, 224))
+        exit("Error 1")
+
     img = image.img_to_array(img)
     img = np.expand_dims(img, axis=0)
 
@@ -187,10 +188,10 @@ def get_image_score(image_path):
         img = efficientnet_preprocess_input(img)
     elif model_type in range(27, 33):
         img = efficientnetv2_preprocess_input(img)
-    elif model_type in range(34, 38):
-        img = preprocess_input(img)
+    elif model_type in range(34, 39):
+        img = convnext_preprocess_input(img)
     else:
-        img = preprocess_input(img)
+        exit("Error 2")
 
     # Use the pre-trained model to predict the image class probabilities
     predictions = model.predict(img)
@@ -248,7 +249,7 @@ if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
     elif model_type in BIG_SCORE_MODELS:
         score_range_type = SCORE_RANGES_BIG
     else:
-        score_range_type = SCORE_RANGES_SMALL
+        exit("Error 3")
 
 # Define input directory
 while True:
@@ -345,7 +346,7 @@ for idx, file_path in enumerate(image_files):
                     shutil.copy(file_path, destination_file_path)
                     print(f"Copied image to {destination_file_path}")
                 else:
-                    print("Error")
+                    exit("Error 4")
 
             else:
                 print(f"Skipped image '{file_path.name}' as it already exists in the destination folder.")
