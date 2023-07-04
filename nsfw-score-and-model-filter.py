@@ -255,8 +255,10 @@ while True:
             yes_or_no = input("This mode is experimental and creates a lot of duplicate files.\nAre you sure you want "
                               "to continue? (y = yes, n = no): ")
             if yes_or_no == "y" or yes_or_no == "n":
+                flag = True
                 break
             print("Invalid answer. Please try again.\n")
+        break
     print("Invalid mode selected. Please try again.\n")
 
 if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
