@@ -42,7 +42,7 @@ score_range_type = None
 move_or_copy = None
 
 # Define the regular expression pattern for invalid characters
-invalid_chars_pattern = r'[<>:"/\\|?*().;#{}[]]'
+invalid_chars_pattern = r'[<>:"/\\|?*().;#{}[\]]'
 
 # Constants for NSFW ranges
 NSFW_RANGES = [
