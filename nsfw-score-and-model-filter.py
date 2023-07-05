@@ -42,6 +42,7 @@ score_range_type = None
 move_or_copy = None
 own_parameters = None
 strict_parameters = None
+score_or_class = None
 
 # Define the regular expression pattern for invalid characters
 invalid_chars_pattern = r'[<>:"-_/\\|?*().;#{}[\]\n]'
@@ -334,6 +335,12 @@ if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
 
         print("Invalid mode selected. Please try again.\n")
 
+    while True:
+        score_or_class = input("Do you wanna filter by score or class? (s = score, c = class) ")
+        if score_or_class == "s" or score_or_class == "c":
+            break
+        print("Invalid answer. Please try again.\n")
+
     model = MODEL_SELECTION[int(model_type)](weights='imagenet')
     if model_type in SMALL_SCORE_MODELS:
         score_range_type = SCORE_RANGES_SMALL
@@ -378,8 +385,11 @@ for idx, file_path in enumerate(image_files):
             # Get the score and index for the input image
             class_index, score = get_image_score(file_path)
             print(f"Score: {score}, Class: {class_index}")
-            score_folder_name = get_folder_name(score, score_range_type)
-            score_folder_name = "S" + score_folder_name
+            if score_or_class == "s":
+                score_folder_name = get_folder_name(score, score_range_type)
+                score_folder_name = "S" + score_folder_name
+            elif score_or_class == "c":
+                score_folder_name = "C" + class_index
 
         if mode in [3, 5, 7, 8, 9, 10, 11, 12, 13, 14, 15]:
             # Extract the model name
