@@ -4,11 +4,15 @@ This is a python script created to sort and filter images, mainly generated imag
 
 ## Requirements
 
-pip install pillow, tensorflow, keras, PyQt5, opennsfw2
+- Python 3
+- Windows 10 or Linux
 
 ## Installation
+```bash
+pip install pillow tensorflow keras PyQt5 opennsfw2
+```
 
-## Filtering tyes
+## Filtering types
 There are currently 4 types of filtering available:
 - NSFW probability
 - Score
@@ -58,8 +62,7 @@ There are several image scorer available:
 - ConvNeXtLarge
 - ConvNeXtXLarge
 
-More information about these can be found here:
-https://keras.io/api/applications/
+> More information about these can be found here: [Keras Applications](https://keras.io/api/applications/)
 
 ## Filter by stable diffusion model
 If the images were generated from stable diffusion, you can sort them by their model name.

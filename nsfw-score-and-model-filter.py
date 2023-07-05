@@ -30,6 +30,8 @@ from tensorflow.keras.applications.convnext import preprocess_input as convnext_
 from tensorflow.keras.preprocessing import image
 from PyQt5.QtWidgets import QApplication, QFileDialog
 
+print("Initializing...")
+
 # Create the application
 app = QApplication([])
 
@@ -266,6 +268,10 @@ def get_folder_path(message):
             print("Invalid input selected. Please try again.\n")
 
 
+def invalid_input():
+    print("Invalid input. Please try again.\n")
+
+
 while True:
     mode = input("Enter Mode:\n1 = NSFW\n2 = Score\n3 = Model\n4 = NSFW/Model\n5 = NSFW/Score\n6 = Score/NSFW\n7 = "
                  "Score/Model\n8 = Model/NSFW\n9 = Model/Score\n10 = NSFW/Score/Model\n11 = NSFW/Model/Score\n12 = "
@@ -282,7 +288,7 @@ while True:
                               "to continue? (y = yes, n = no): ")
             if yes_or_no == "y" or yes_or_no == "n":
                 break
-            print("Invalid answer. Please try again.\n")
+            invalid_input()
         while True:
             own_parameters_input = input("Do you wanna filter by own parameters? (y = yes, n = no): ")
             if own_parameters_input == "y":
@@ -298,12 +304,12 @@ while True:
                     elif strict_parameters_input == "n":
                         strict_parameters = False
                         break
-                    print("Invalid answer. Please try again.\n")
+                    invalid_input()
                 break
             elif own_parameters_input == "n":
                 own_parameters = None
                 break
-            print("Invalid answer. Please try again.\n")
+            invalid_input()
         while True:
             split_words_input = input("Do you wanna split each word from existing images? (y = yes, n = no): ")
             if split_words_input == "y":
@@ -312,9 +318,9 @@ while True:
             elif split_words_input == "n":
                 split_words = False
                 break
-            print("Invalid answer. Please try again.\n")
+            invalid_input()
         break
-    print("Invalid mode selected. Please try again.\n")
+    invalid_input()
 
 if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
     while True:
@@ -332,15 +338,15 @@ if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
         if model_type in [str(i) for i in range(1, 39)]:
             model_type = int(model_type)
             break
-
-        print("Invalid mode selected. Please try again.\n")
+        invalid_input()
 
     while True:
         score_or_class = input("Do you wanna filter by score or class? (s = score, c = class) ")
         if score_or_class == "s" or score_or_class == "c":
             break
-        print("Invalid answer. Please try again.\n")
+        invalid_input()
 
+    print("Loading scoring model...")
     model = MODEL_SELECTION[int(model_type)](weights='imagenet')
     if model_type in SMALL_SCORE_MODELS:
         score_range_type = SCORE_RANGES_SMALL
@@ -363,7 +369,7 @@ if mode != 16:
             move_or_copy = int(move_or_copy)
             break
 
-        print("Invalid mode selected. Please try again.\n")
+        invalid_input()
 
 # Count the total number of images in the input folder
 valid_extensions = ('.png', '.jpg', '.jpeg')
