@@ -1,8 +1,12 @@
-# nsfw-score-and-model-filter
+# NSFW, Score / Class, Model and Parameter Filter
 
 This is a python script created to sort and filter images, mainly generated images from stable diffusion, based on their nsfw probability, score and class, model name and/or their parameters from generation.
 
 ## Requirements
+
+pip install pillow, tensorflow, keras, PyQt5, opennsfw2
+
+## Installation
 
 ## Filtering tyes
 There are currently 4 types of filtering available:
@@ -57,16 +61,34 @@ There are several image scorer available:
 More information about these can be found here:
 https://keras.io/api/applications/
 
-## Filter by sd model
+## Filter by stable diffusion model
+If the images were generated from stable diffusion, you can sort them by their model name.
 
-
-## Filter by parameter(s)
-
+## Filter by stable diffusion positive input parameter(s)
+If the images were generated from stable diffusion, you can filter and sort them by their parameter(s).
+You can also input own parameters and only filter images that match your own parameter(s)
+You can choose between matching only one or all of your parameter(s).
 
 ## ToDo
+### Will be implemented in the future
+- Add class names (print and option to name the folders)
+- Parameters integrate with other (rewrite mode_folders)
+- Better error handling and error messages
+- Own ranges for nsfw and score (with more decimals, higher lows and/or higher highs)
+- Automatic installation of necessary components
+- Configuration file
 
+### Will maybe be implemented
+
+- Support for other image generation tools
 
 
 ## Help and bug reporting
+Only use github issues for reporting bugs or feature requests 
+Please report bugs only with detailed steps to reproduce.
 
 ## Credits
+
+- Keras
+- OpenNSWF2
+- Stable Diffusion
