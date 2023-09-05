@@ -430,7 +430,7 @@ while True:
                             if own_parameters_input == "y":
                                 own_parameters = input("Type your filter parameters separated by commas (,): ")
                                 own_parameters = own_parameters.replace(" ", "")  # Remove any spaces in the input
-                                own_parameters = own_parameters.split(",")  # Split the input at each comma
+                                parameters = own_parameters.split(",")  # Split the input at each comma
 
                                 if strict_parameters is None:
                                     while True:
@@ -445,7 +445,7 @@ while True:
                                         invalid_input()
                                 break
                             elif own_parameters_input == "n":
-                                own_parameters = None
+                                parameters = None
                                 break
                             invalid_input()
                     if split_words is None:
@@ -516,6 +516,35 @@ if mode != 16:
                 break
 
             invalid_input()
+
+if autonomous != "True":
+    while True:
+        save_config = input("Do you wanna save current settings for next time? (y = yes, n = no) ")
+        if save_config == "y" or save_config == "n":
+            break
+
+        invalid_input()
+
+    if save_config == "y":
+        data = {
+            "autonomous": autonomous,
+            "input_folder": input_folder,
+            "output_folder": output_folder,
+            "move_or_copy": move_or_copy,
+            "mode": mode,
+            "experimental": experimental,
+            "own_parameters": own_parameters,
+            "parameters": [
+                parameters
+            ],
+            "strict_parameters": strict_parameters,
+            "split_words": split_words,
+            "model_type": model_type,
+            "score_or_class": score_or_class
+        }
+
+        with open('config.json', 'w') as file:
+            json.dump(data, file, indent=4)
 
 # Count the total number of images in the input folder
 valid_extensions = ('.png', '.jpg', '.jpeg')
@@ -594,13 +623,13 @@ for idx, file_path in enumerate(image_files):
         elif mode == 16:
             if strict_parameters:
                 parameters_found = True
-                for parameter in own_parameters:
+                for parameter in parameters:
                     if parameter not in parameter_list:
                         parameters_found = False
                         break
 
                 if parameters_found:
-                    folder_name = "_".join(own_parameters)  # Concatenate parameters with underscores
+                    folder_name = "_".join(parameters)  # Concatenate parameters with underscores
                     new_output_folder = output_folder / folder_name
                     new_output_folder.mkdir(parents=True, exist_ok=True)
                     destination_file_path = new_output_folder / file_path.name
@@ -615,7 +644,7 @@ for idx, file_path in enumerate(image_files):
 
             else:
                 for parameter in parameter_list:
-                    if own_parameters is None or parameter in own_parameters:
+                    if parameters is None or parameter in parameters:
                         new_output_folder = output_folder / parameter
                         new_output_folder.mkdir(parents=True, exist_ok=True)
                         destination_file_path = new_output_folder / file_path.name

@@ -11,7 +11,7 @@
     "parameter2"
   ],
   "strict_parameters": "n",
-  "split_words": "n",
+  "split_words": "True",
   "model_type": 1,
   "score_or_class": "s"
 }
