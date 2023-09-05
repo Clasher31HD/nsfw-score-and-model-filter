@@ -392,12 +392,12 @@ while True:
                 model_type = config_data["model_type"]
                 score_or_class = config_data["score_or_class"]
 
-            if mode is 16:
+            if mode == 16:
                 experimental = config_data["experimental"]
                 own_parameters = config_data["own_parameters"]
                 split_words = config_data["split_words"]
 
-                if own_parameters is "y":
+                if own_parameters == "y":
                     parameters = config_data["parameters"]
                     strict_parameters = config_data["strict_parameters"]
 
