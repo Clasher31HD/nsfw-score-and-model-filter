@@ -295,11 +295,11 @@ def invalid_config(key):
 
 
 def check_config():
-    print("Checking for config...")
+    print("Checking for config file...")
 
     if config_path.exists():
         print("Config file found")
-        print("Loading config values")
+        print("Checking config values...")
         # Open and read the config file
         with open(config_path, 'r') as config_file:
             config_data = json.load(config_file)
@@ -403,7 +403,7 @@ def check_config():
 
 while True:
     if check_config():
-        print("Config successfully checked.")
+        print("Config values successfully checked.")
         print("Loading config...")
 
         with open(config_path, 'r') as config_file:
@@ -428,7 +428,7 @@ while True:
                     parameters = config_data["parameters"]
                     strict_parameters = config_data["strict_parameters"]
 
-        print("Config successfully loaded.")
+        print("Config successfully loaded and applied.")
         break
     else:
         if mode is None:
