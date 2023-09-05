@@ -394,7 +394,7 @@ def check_config():
                     if strict_parameters not in ["y", "n"]:
                         invalid_config("strict_parameters")
                         return False
-                    return True
+            return True
 
         else:
             print("No config file found, proceeding without...")
