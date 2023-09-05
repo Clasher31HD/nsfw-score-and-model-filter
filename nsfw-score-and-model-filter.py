@@ -309,7 +309,7 @@ def check_config():
         output_folder = Path(config_data["output_folder"])
         move_or_copy = config_data["move_or_copy"]
 
-        if autonomous is not "True" or "False":
+        if autonomous not in ["True", "False"]:
             return False
         if mode not in [str(i) for i in range(1, 17)]:
             return False
@@ -317,7 +317,7 @@ def check_config():
             return False
         if not output_folder.exists() or not output_folder.is_dir():
             return False
-        if move_or_copy is not 1 or 2:
+        if move_or_copy not in [1, 2]:
             return False
 
         if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
@@ -329,12 +329,12 @@ def check_config():
             model_type = config_data["model_type"]
             score_or_class = config_data["score_or_class"]
 
-            if model_type is not [str(i) for i in range(1, 39)]:
+            if model_type not in [str(i) for i in range(1, 39)]:
                 return False
-            if score_or_class is not "s" or "c":
+            if score_or_class not in ["s", "c"]:
                 return False
 
-        if mode is 16:
+        if mode == 16:  # Fixed the condition
             if "experimental" not in config_data:
                 return False
             else:
@@ -343,34 +343,35 @@ def check_config():
                 if "split_words" not in config_data:
                     return False
 
-            experimental = config_data["experimental"]
-            own_parameters = config_data["own_parameters"]
-            split_words = config_data["split_words"]
+                experimental = config_data["experimental"]
+                own_parameters = config_data["own_parameters"]
+                split_words = config_data["split_words"]
 
-            if experimental is not "y" or "n":
-                return False
-            if own_parameters is not "y" or "n":
-                return False
-            if split_words is not "y" or "n":
-                return False
-
-            if own_parameters is "y":
-                if "parameters" not in config_data:
+                if experimental not in ["y", "n"]:
                     return False
-                if "strict_parameters" not in config_data:
+                if own_parameters not in ["y", "n"]:
+                    return False
+                if split_words not in ["y", "n"]:
                     return False
 
-                parameters = config_data["parameters"]
-                strict_parameters = config_data["strict_parameters"]
+                if own_parameters == "y":
+                    if "parameters" not in config_data:
+                        return False
+                    if "strict_parameters" not in config_data:
+                        return False
 
-                if parameters is not None:
-                    return False
-                if strict_parameters is not "y" or "n":
-                    return False
-                return True
-    else:
-        print("No config file found, proceeding without...")
-        return False
+                    parameters = config_data["parameters"]
+                    strict_parameters = config_data["strict_parameters"]
+
+                    if parameters is None:  # Fixed the condition
+                        return False
+                    if strict_parameters not in ["y", "n"]:  # Fixed the condition
+                        return False
+                    return True
+
+        else:
+            print("No config file found, proceeding without...")
+            return False
 
 
 while True:
