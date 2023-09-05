@@ -320,7 +320,7 @@ def check_config():
         if autonomous not in ["True", "False"]:
             invalid_config("autonomous")
             return False
-        if mode not in [str(i) for i in range(1, 17)]:
+        if mode not in [i for i in range(1, 17)]:
             invalid_config("mode")
             return False
         if not input_folder.exists() or not input_folder.is_dir():
@@ -344,7 +344,7 @@ def check_config():
             model_type = config_data["model_type"]
             score_or_class = config_data["score_or_class"]
 
-            if model_type not in [str(i) for i in range(1, 39)]:
+            if model_type not in [i for i in range(1, 39)]:
                 invalid_config("model_type")
                 return False
             if score_or_class not in ["s", "c"]:
