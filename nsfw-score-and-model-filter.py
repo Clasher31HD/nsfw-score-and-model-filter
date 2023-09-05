@@ -318,19 +318,19 @@ def check_config():
         move_or_copy = config_data["move_or_copy"]
 
         if autonomous not in ["True", "False"]:
-            invalid_config(autonomous)
+            invalid_config("autonomous")
             return False
         if mode not in [str(i) for i in range(1, 17)]:
-            invalid_config(mode)
+            invalid_config("mode")
             return False
         if not input_folder.exists() or not input_folder.is_dir():
-            invalid_config(input_folder)
+            invalid_config("input_folder")
             return False
         if not output_folder.exists() or not output_folder.is_dir():
-            invalid_config(output_folder)
+            invalid_config("output_folder")
             return False
         if move_or_copy not in [1, 2]:
-            invalid_config(move_or_copy)
+            invalid_config("move_or_copy")
             return False
 
         if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
@@ -345,10 +345,10 @@ def check_config():
             score_or_class = config_data["score_or_class"]
 
             if model_type not in [str(i) for i in range(1, 39)]:
-                invalid_config(model_type)
+                invalid_config("model_type")
                 return False
             if score_or_class not in ["s", "c"]:
-                invalid_config(score_or_class)
+                invalid_config("score_or_class")
                 return False
 
         if mode == 16:  # Fixed the condition
@@ -368,13 +368,13 @@ def check_config():
                 split_words = config_data["split_words"]
 
                 if experimental not in ["y", "n"]:
-                    invalid_config(experimental)
+                    invalid_config("experimental")
                     return False
                 if own_parameters not in ["y", "n"]:
-                    invalid_config(own_parameters)
+                    invalid_config("own_parameters")
                     return False
                 if split_words not in ["y", "n"]:
-                    invalid_config(split_words)
+                    invalid_config("split_words")
                     return False
 
                 if own_parameters == "y":
@@ -389,10 +389,10 @@ def check_config():
                     strict_parameters = config_data["strict_parameters"]
 
                     if parameters is None:
-                        invalid_config(parameters)
+                        invalid_config("parameters")
                         return False
                     if strict_parameters not in ["y", "n"]:
-                        invalid_config(strict_parameters)
+                        invalid_config("strict_parameters")
                         return False
                     return True
 
