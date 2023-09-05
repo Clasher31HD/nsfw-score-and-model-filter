@@ -301,7 +301,7 @@ def check_config():
         print("Config file found")
         print("Loading config values")
         # Open and read the config file
-        with open('config.json', 'r') as config_file:
+        with open(config_path, 'r') as config_file:
             config_data = json.load(config_file)
 
         keys_to_check = ["autonomous", "mode", "input_folder", "output_folder", "move_or_copy"]
@@ -406,7 +406,7 @@ while True:
         print("Config successfully checked.")
         print("Loading config...")
 
-        with open('config.json', 'r') as config_file:
+        with open(config_path, 'r') as config_file:
             config_data = json.load(config_file)
 
             autonomous = config_data["autonomous"]
