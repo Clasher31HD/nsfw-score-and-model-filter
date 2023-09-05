@@ -1,0 +1,17 @@
+{
+  "autonomous": "True",
+  "input_folder": "/Path/to/your/images",
+  "output_folder": "/Path/to/your/output/folder",
+  "move_or_copy": 2,
+  "mode": 1,
+  "experimental": "y",
+  "own_parameters": "n",
+  "parameters": [
+    "parameter1",
+    "parameter2"
+  ],
+  "strict_parameters": "n",
+  "split_words": "n",
+  "model_type": 1,
+  "score_or_class": "s"
+}

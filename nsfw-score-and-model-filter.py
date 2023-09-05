@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 import PIL
+import json
 from PIL import Image
 import re
 import numpy as np
@@ -30,6 +31,24 @@ from tensorflow.keras.applications.convnext import preprocess_input as convnext_
 from tensorflow.keras.preprocessing import image
 from PyQt5.QtWidgets import QApplication, QFileDialog
 
+# Config path
+config_path = Path("config.json")
+
+# Config values
+autonomous = None
+input_folder = None
+output_folder = None
+move_or_copy = None
+mode = None
+parameter_list = None
+experimental = None
+own_parameters = None
+parameters = None
+strict_parameters = None
+split_words = None
+model_type = None
+score_or_class = None
+
 print("Initializing...")
 
 # Create the application
@@ -39,12 +58,7 @@ app = QApplication([])
 nsfw_folder_name = None
 score_folder_name = None
 model_folder_name = None
-parameter_list = None
 score_range_type = None
-move_or_copy = None
-own_parameters = None
-strict_parameters = None
-score_or_class = None
 
 # Define the regular expression pattern for invalid characters
 invalid_chars_pattern = r'[<>:"-_/\\|?*().;#{}[\]\n]'
@@ -272,79 +286,207 @@ def invalid_input():
     print("Invalid input. Please try again.\n")
 
 
-while True:
-    mode = input("Enter Mode:\n1 = NSFW\n2 = Score\n3 = Model\n4 = NSFW/Model\n5 = NSFW/Score\n6 = Score/NSFW\n7 = "
-                 "Score/Model\n8 = Model/NSFW\n9 = Model/Score\n10 = NSFW/Score/Model\n11 = NSFW/Model/Score\n12 = "
-                 "Score/NSFW/Model\n13 = Score/Model/NSFW\n14 = Model/NSFW/Score\n15 = Model/Score/NSFW\n16 = "
-                 "Parameter (Experimental)\nSelected Mode: ")
+def check_config():
+    print("Checking for config...")
 
-    if mode in [str(i) for i in range(1, 16)]:
-        mode = int(mode)
+    if config_path.exists():
+        print("Config file found")
+        print("Loading config values")
+        # Open and read the config file
+        with open('config.json', 'r') as config_file:
+            config_data = json.load(config_file)
+
+        keys_to_check = ["autonomous", "mode", "input_folder", "output_folder", "move_or_copy"]
+
+        for key in keys_to_check:
+            if key not in config_data:
+                print(f"The '{key}' key does not exist in the config file.")
+                return False
+
+        autonomous = config_data["autonomous"]
+        mode = config_data["mode"]
+        input_folder = Path(config_data["input_folder"])
+        output_folder = Path(config_data["output_folder"])
+        move_or_copy = config_data["move_or_copy"]
+
+        if autonomous is not "True" or "False":
+            return False
+        if mode not in [str(i) for i in range(1, 17)]:
+            return False
+        if not input_folder.exists() or not input_folder.is_dir():
+            return False
+        if not output_folder.exists() or not output_folder.is_dir():
+            return False
+        if move_or_copy is not 1 or 2:
+            return False
+
+        if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
+            if "model_type" not in config_data:
+                return False
+            if "score_or_class" not in config_data:
+                return False
+
+            model_type = config_data["model_type"]
+            score_or_class = config_data["score_or_class"]
+
+            if model_type is not [str(i) for i in range(1, 39)]:
+                return False
+            if score_or_class is not "s" or "c":
+                return False
+
+        if mode is 16:
+            if "experimental" not in config_data:
+                return False
+            else:
+                if "own_parameters" not in config_data:
+                    return False
+                if "split_words" not in config_data:
+                    return False
+
+            experimental = config_data["experimental"]
+            own_parameters = config_data["own_parameters"]
+            split_words = config_data["split_words"]
+
+            if experimental is not "y" or "n":
+                return False
+            if own_parameters is not "y" or "n":
+                return False
+            if split_words is not "y" or "n":
+                return False
+
+            if own_parameters is "y":
+                if "parameters" not in config_data:
+                    return False
+                if "strict_parameters" not in config_data:
+                    return False
+
+                parameters = config_data["parameters"]
+                strict_parameters = config_data["strict_parameters"]
+
+                if parameters is not None:
+                    return False
+                if strict_parameters is not "y" or "n":
+                    return False
+                return True
+    else:
+        print("No config file found, proceeding without...")
+        return False
+
+
+while True:
+    if check_config():
+        print("Config successfully checked.")
+        print("Loading config...")
+
+        with open('config.json', 'r') as config_file:
+            config_data = json.load(config_file)
+
+            autonomous = config_data["autonomous"]
+            mode = config_data["mode"]
+            input_folder = Path(config_data["input_folder"])
+            output_folder = Path(config_data["output_folder"])
+            move_or_copy = config_data["move_or_copy"]
+
+            if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
+                model_type = config_data["model_type"]
+                score_or_class = config_data["score_or_class"]
+
+            if mode is 16:
+                experimental = config_data["experimental"]
+                own_parameters = config_data["own_parameters"]
+                split_words = config_data["split_words"]
+
+                if own_parameters is "y":
+                    parameters = config_data["parameters"]
+                    strict_parameters = config_data["strict_parameters"]
+
+        print("Config successfully loaded.")
         break
-    elif mode == "16":
-        mode = int(mode)
-        while True:
-            yes_or_no = input("This mode is experimental and creates a lot of duplicate files.\nAre you sure you want "
-                              "to continue? (y = yes, n = no): ")
-            if yes_or_no == "y" or yes_or_no == "n":
-                break
-            invalid_input()
-        while True:
-            own_parameters_input = input("Do you wanna filter by own parameters? (y = yes, n = no): ")
-            if own_parameters_input == "y":
-                own_parameters = input("Type your filter parameters separated by commas (,): ")
-                own_parameters = own_parameters.replace(" ", "")  # Remove any spaces in the input
-                own_parameters = own_parameters.split(",")  # Split the input at each comma
-                while True:
-                    strict_parameters_input = input("Do you wanna filter by strictly all parameters? (y = yes, "
-                                                    "n = no): ")
-                    if strict_parameters_input == "y":
-                        strict_parameters = True
+    else:
+        if mode is None:
+            while True:
+                mode = input("Enter Mode:\n1 = NSFW\n2 = Score\n3 = Model\n4 = NSFW/Model\n5 = NSFW/Score\n6 = "
+                             "Score/NSFW\n7 = Score/Model\n8 = Model/NSFW\n9 = Model/Score\n10 = NSFW/Score/Model\n11 "
+                             "= NSFW/Model/Score\n12 = Score/NSFW/Model\n13 = Score/Model/NSFW\n14 = "
+                             "Model/NSFW/Score\n15 = Model/Score/NSFW\n16 = Parameter (Experimental)\nSelected Mode: ")
+
+                if mode in [str(i) for i in range(1, 16)]:
+                    mode = int(mode)
+                    break
+                elif mode == "16":
+                    mode = int(mode)
+                    if experimental is None:
+                        while True:
+                            experimental = input("This mode is experimental and creates a lot of duplicate "
+                                                 "files.\nAre you sure you want to continue? (y = yes, n = no): ")
+                            if experimental == "y" or experimental == "n":
+                                break
+                            invalid_input()
+
+                    if own_parameters is None:
+                        while True:
+                            own_parameters_input = input("Do you wanna filter by own parameters? (y = yes, n = no): ")
+                            if own_parameters_input == "y":
+                                own_parameters = input("Type your filter parameters separated by commas (,): ")
+                                own_parameters = own_parameters.replace(" ", "")  # Remove any spaces in the input
+                                own_parameters = own_parameters.split(",")  # Split the input at each comma
+
+                                if strict_parameters is None:
+                                    while True:
+                                        strict_parameters_input = input("Do you wanna filter by strictly all "
+                                                                        "parameters? (y = yes, n = no): ")
+                                        if strict_parameters_input == "y":
+                                            strict_parameters = True
+                                            break
+                                        elif strict_parameters_input == "n":
+                                            strict_parameters = False
+                                            break
+                                        invalid_input()
+                                break
+                            elif own_parameters_input == "n":
+                                own_parameters = None
+                                break
+                            invalid_input()
+                    if split_words is None:
+                        while True:
+                            split_words_input = input("Do you wanna split each word from existing images? (y = yes, "
+                                                      "n = no): ")
+                            if split_words_input == "y":
+                                split_words = True
+                                break
+                            elif split_words_input == "n":
+                                split_words = False
+                                break
+                            invalid_input()
                         break
-                    elif strict_parameters_input == "n":
-                        strict_parameters = False
-                        break
-                    invalid_input()
-                break
-            elif own_parameters_input == "n":
-                own_parameters = None
-                break
-            invalid_input()
-        while True:
-            split_words_input = input("Do you wanna split each word from existing images? (y = yes, n = no): ")
-            if split_words_input == "y":
-                split_words = True
-                break
-            elif split_words_input == "n":
-                split_words = False
-                break
-            invalid_input()
-        break
-    invalid_input()
+                invalid_input()
+            break
 
 if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
-    while True:
-        model_type = input("Which Scoring Model do you wanna use?\n1 = Xception\n2 = VGG16\n3 = VGG19\n4 = ResNet50\n5 "
-                           "= ResNet50V2\n6 = ResNet101\n7 = ResNet101V2\n8 = ResNet152\n9 = ResNet152V2\n10 = "
-                           "InceptionV3\n11 = InceptionResNetV2\n12 = MobileNet\13 = MobileNetV2\n14 = "
-                           "DenseNet121\n15 = DenseNet169\n16 = DenseNet201\n17 = NASNetMobile\n18 = NASNetLarge\n19 "
-                           "= EfficientNetB0\n20 = EfficientNetB1\n21 = EfficientNetB2\n22 = EfficientNetB3\n23 = "
-                           "EfficientNetB4\n24 = EfficientNetB5\n25 = EfficientNetB6\n26 = EfficientNetB7\n27 = "
-                           "EfficientNetV2B0\n28 = EfficientNetV2B1\n29 = EfficientNetV2B2\n30 = EfficientNetV2B3\n31 "
-                           "= EfficientNetV2S\n32 = EfficientNetV2M\n33 = EfficientNetV2L\n34 = ConvNeXtTiny\n35 = "
-                           "ConvNeXtSmall\n36 = ConvNeXtBase\n37 = ConvNeXtLarge\n38 = ConvNeXtXLarge\nSelected "
-                           "Scoring Model: ")
+    if model_type is None:
+        while True:
+            model_type = input("Which Scoring Model do you wanna use?\n1 = Xception\n2 = VGG16\n3 = VGG19\n4 = "
+                               "ResNet50\n5 = ResNet50V2\n6 = ResNet101\n7 = ResNet101V2\n8 = ResNet152\n9 = "
+                               "ResNet152V2\n10 = InceptionV3\n11 = InceptionResNetV2\n12 = MobileNet\13 = "
+                               "MobileNetV2\n14 = DenseNet121\n15 = DenseNet169\n16 = DenseNet201\n17 = "
+                               "NASNetMobile\n18 = NASNetLarge\n19 = EfficientNetB0\n20 = EfficientNetB1\n21 = "
+                               "EfficientNetB2\n22 = EfficientNetB3\n23 = EfficientNetB4\n24 = EfficientNetB5\n25 = "
+                               "EfficientNetB6\n26 = EfficientNetB7\n27 = EfficientNetV2B0\n28 = EfficientNetV2B1\n29 "
+                               "= EfficientNetV2B2\n30 = EfficientNetV2B3\n31 = EfficientNetV2S\n32 = "
+                               "EfficientNetV2M\n33 = EfficientNetV2L\n34 = ConvNeXtTiny\n35 = ConvNeXtSmall\n36 = "
+                               "ConvNeXtBase\n37 = ConvNeXtLarge\n38 = ConvNeXtXLarge\nSelected Scoring Model: ")
 
-        if model_type in [str(i) for i in range(1, 39)]:
-            model_type = int(model_type)
-            break
-        invalid_input()
+            if model_type in [str(i) for i in range(1, 39)]:
+                model_type = int(model_type)
+                break
+            invalid_input()
 
-    while True:
-        score_or_class = input("Do you wanna filter by score or class? (s = score, c = class) ")
-        if score_or_class == "s" or score_or_class == "c":
-            break
-        invalid_input()
+    if score_or_class is None:
+        while True:
+            score_or_class = input("Do you wanna filter by score or class? (s = score, c = class) ")
+            if score_or_class == "s" or score_or_class == "c":
+                break
+            invalid_input()
 
     print("Loading scoring model...")
     model = MODEL_SELECTION[int(model_type)](weights='imagenet')
@@ -356,20 +498,23 @@ if mode in [2, 4, 6, 7, 9, 10, 11, 12, 13, 14, 15]:
         exit("Error 3")
 
 # Define input directory
-input_folder = get_folder_path("Choose your input folder")
+if input_folder is None:
+    input_folder = get_folder_path("Choose your input folder")
 
 # Define output directory
-output_folder = get_folder_path("Choose your output folder")
+if output_folder is None:
+    output_folder = get_folder_path("Choose your output folder")
 
 if mode != 16:
-    while True:
-        move_or_copy = input("Do you wanna move or copy the files?\n1 = Move\n2 = Copy\nSelected mode: ")
+    if move_or_copy is None:
+        while True:
+            move_or_copy = input("Do you wanna move or copy the files?\n1 = Move\n2 = Copy\nSelected mode: ")
 
-        if move_or_copy == "1" or move_or_copy == "2":
-            move_or_copy = int(move_or_copy)
-            break
+            if move_or_copy == "1" or move_or_copy == "2":
+                move_or_copy = int(move_or_copy)
+                break
 
-        invalid_input()
+            invalid_input()
 
 # Count the total number of images in the input folder
 valid_extensions = ('.png', '.jpg', '.jpeg')
