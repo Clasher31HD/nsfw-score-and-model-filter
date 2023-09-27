@@ -59,7 +59,7 @@ def predict_gender(image_path):
 
 print("Loading model...")
 # Load the pre-trained MobileNetV2 model (excluding the top layer)
-base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 4))
+base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
 
 # Add custom layers for gender classification
 x = base_model.output
