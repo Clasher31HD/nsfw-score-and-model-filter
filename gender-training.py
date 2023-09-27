@@ -6,6 +6,8 @@ from PyQt5.QtWidgets import QApplication, QFileDialog
 from pathlib import Path
 
 input_folder = None
+output_folder = None
+num_classes = 4
 
 print("Initializing...")
 
@@ -28,6 +30,10 @@ def get_folder_path(message):
 # Define input directory
 if input_folder is None:
     input_folder = get_folder_path("Choose your input folder")
+
+# Define input directory
+if output_folder is None:
+    output_folder = get_folder_path("Choose your input folder")
 
 
 # Define image dimensions and batch size
@@ -60,7 +66,7 @@ base_model = MobileNetV2(weights='imagenet', include_top=False)
 x = base_model.output
 x = GlobalAveragePooling2D()(x)
 x = Dense(128, activation='relu')(x)
-predictions = Dense(4, activation='softmax')(x)  # Softmax for multi-class classification
+predictions = Dense(num_classes, activation='softmax')(x)  # Softmax for multi-class classification
 
 # Create the custom model
 model = Model(inputs=base_model.input, outputs=predictions)
@@ -81,8 +87,16 @@ epochs = 10  # Adjust as needed
 history = model.fit(train_generator,
                     epochs=epochs)
 
-# Save the trained model
-model.save('gender_classification_model.h5')
+# Extract base model name, number of classes, and total images
+base_model_name = base_model.name
+total_images = train_generator.samples
+
+# Save the trained model with the specified information in the filename
+model_filename = f'{base_model_name}_classes{num_classes}_images{total_images}.h5'
+destination_file_path = output_folder / model_filename
+model.save(destination_file_path)
+
+print(f"Model saved in '{destination_file_path}'")
 
 print("Gender training complete.")
 exit()
