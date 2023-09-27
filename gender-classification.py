@@ -1,5 +1,4 @@
 import os
-import cv2
 import numpy as np
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.layers import GlobalAveragePooling2D, Dense

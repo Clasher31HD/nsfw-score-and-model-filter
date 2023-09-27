@@ -1,4 +1,3 @@
-import tensorflow as tf
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
@@ -47,7 +46,7 @@ train_generator = train_datagen.flow_from_directory(
     input_folder,
     target_size=(img_width, img_height),
     batch_size=batch_size,
-    class_mode='categorical',  # Multi-class classification (male, female, neither)
+    class_mode='categorical',  # Multi-class classification (male, female, both, neither)
     shuffle=True
 )
 
