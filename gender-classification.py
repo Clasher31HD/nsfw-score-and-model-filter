@@ -67,6 +67,7 @@ MODEL_SELECTION = {
     38: ConvNeXtXLarge
 }
 
+
 def get_folder_path(message):
     while True:
         print(message)
@@ -128,7 +129,6 @@ if model_type is None:
             break
         invalid_input()
 
-print("Loading model...")
 # Determine the input shape based on the selected model_type
 if model_type in [2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 17, 19, 27, 34, 35, 36, 37, 38]:
     input_shape = (224, 224, 3)
@@ -157,6 +157,7 @@ elif model_type in [26]:
 else:
     exit("Error 1")
 
+print("Loading model: " + MODEL_SELECTION[int(model_type)])
 # Load the pre-trained model with the determined input shape
 base_model = MODEL_SELECTION[int(model_type)](weights='imagenet', include_top=False, input_shape=input_shape)
 
@@ -172,10 +173,12 @@ print("Model loaded")
 
 # Add code to select the model file
 if model_file is None:
-    model_file = get_file_path("Choose the model file")
+    model_file = get_file_path("Choose your model file")
 
+print("Loading model: " + MODEL_SELECTION[int(model_type)])
 # Load the trained weights for gender classification
 model.load_weights(str(model_file))
+print("Model loaded")
 
 # Define input directory
 if input_folder is None:
