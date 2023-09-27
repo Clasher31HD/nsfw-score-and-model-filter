@@ -12,6 +12,8 @@ input_folder = None
 output_folder = None
 model_file = None
 
+print("Initializing...")
+
 # Create the application
 app = QApplication([])
 
@@ -55,6 +57,7 @@ def predict_gender(image_path):
     return predicted_label
 
 
+print("Loading model...")
 # Load the pre-trained MobileNetV2 model (excluding the top layer)
 base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 4))
 
@@ -65,6 +68,8 @@ x = Dense(128, activation='relu')(x)
 predictions = Dense(3, activation='softmax')(x)  # Adjust the output layer for 3 classes
 
 model = Model(inputs=base_model.input, outputs=predictions)
+
+print("Model loaded")
 
 # Add code to select the model file
 if model_file is None:

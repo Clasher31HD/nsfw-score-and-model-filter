@@ -7,6 +7,8 @@ from pathlib import Path
 
 input_folder = None
 
+print("Initializing...")
+
 # Create the application
 app = QApplication([])
 
@@ -50,6 +52,7 @@ train_generator = train_datagen.flow_from_directory(
     shuffle=True
 )
 
+print("Loading model...")
 # Load the pre-trained MobileNetV2 model (excluding the top layer)
 base_model = MobileNetV2(weights='imagenet', include_top=False)
 
@@ -61,6 +64,8 @@ predictions = Dense(4, activation='softmax')(x)  # Softmax for multi-class class
 
 # Create the custom model
 model = Model(inputs=base_model.input, outputs=predictions)
+
+print("Model loaded")
 
 # Freeze layers in the base model
 for layer in base_model.layers:
