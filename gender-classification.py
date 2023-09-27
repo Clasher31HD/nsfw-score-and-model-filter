@@ -27,21 +27,6 @@ def get_folder_path(message):
             print("Invalid input selected. Please try again.\n")
 
 
-# Load the pre-trained MobileNetV2 model (excluding the top layer)
-base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
-
-# Add custom layers for gender classification
-x = base_model.output
-x = GlobalAveragePooling2D()(x)
-x = Dense(128, activation='relu')(x)
-predictions = Dense(3, activation='softmax')(x)  # Adjust the output layer for 3 classes
-
-model = Model(inputs=base_model.input, outputs=predictions)
-
-# Load the trained weights for gender classification
-model.load_weights('gender_classification_model.h5')
-
-
 # Define a function to predict gender
 def predict_gender(image_path):
     img = image.load_img(image_path, target_size=(224, 224))
@@ -56,6 +41,20 @@ def predict_gender(image_path):
 
     return predicted_label
 
+
+# Load the pre-trained MobileNetV2 model (excluding the top layer)
+base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+
+# Add custom layers for gender classification
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
+x = Dense(128, activation='relu')(x)
+predictions = Dense(3, activation='softmax')(x)  # Adjust the output layer for 3 classes
+
+model = Model(inputs=base_model.input, outputs=predictions)
+
+# Load the trained weights for gender classification
+model.load_weights('gender_classification_model.h5')
 
 # Define input directory
 if input_folder is None:
