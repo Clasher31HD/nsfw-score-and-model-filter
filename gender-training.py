@@ -3,9 +3,31 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications import MobileNetV2
 from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
 from tensorflow.keras.models import Model
+from PyQt5.QtWidgets import QApplication, QFileDialog
+from pathlib import Path
 
-# Define the path to your training data directory
-train_data_dir = 'C:/Users/I539356/Downloads/www.freepik.com/training'
+input_folder = None
+
+# Create the application
+app = QApplication([])
+
+
+def get_folder_path(message):
+    while True:
+        print(message)
+        folder_path_input = QFileDialog().getExistingDirectory(None, message)
+
+        if folder_path_input:
+            folder_path = Path(folder_path_input)
+            return folder_path
+        else:
+            print("Invalid input selected. Please try again.\n")
+
+
+# Define input directory
+if input_folder is None:
+    input_folder = get_folder_path("Choose your input folder")
+
 
 # Define image dimensions and batch size
 img_width, img_height = 224, 224
@@ -22,7 +44,7 @@ train_datagen = ImageDataGenerator(
 )
 
 train_generator = train_datagen.flow_from_directory(
-    train_data_dir,
+    input_folder,
     target_size=(img_width, img_height),
     batch_size=batch_size,
     class_mode='categorical',  # Multi-class classification (male, female, neither)

@@ -6,6 +6,26 @@ from tensorflow.keras.layers import GlobalAveragePooling2D, Dense
 from tensorflow.keras.models import Model
 from tensorflow.keras.preprocessing import image
 import shutil
+from PyQt5.QtWidgets import QApplication, QFileDialog
+from pathlib import Path
+
+input_folder = None
+
+# Create the application
+app = QApplication([])
+
+
+def get_folder_path(message):
+    while True:
+        print(message)
+        folder_path_input = QFileDialog().getExistingDirectory(None, message)
+
+        if folder_path_input:
+            folder_path = Path(folder_path_input)
+            return folder_path
+        else:
+            print("Invalid input selected. Please try again.\n")
+
 
 # Load the pre-trained MobileNetV2 model (excluding the top layer)
 base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
@@ -21,6 +41,7 @@ model = Model(inputs=base_model.input, outputs=predictions)
 # Load the trained weights for gender classification
 model.load_weights('gender_classification_model.h5')
 
+
 # Define a function to predict gender
 def predict_gender(image_path):
     img = image.load_img(image_path, target_size=(224, 224))
@@ -35,8 +56,10 @@ def predict_gender(image_path):
 
     return predicted_label
 
-# Path to the folder containing full-body images
-image_folder = 'C:/Users/I539356/Downloads/www.freepik.com/People Vectors- Photos and PSD files - Free Download - 27-09-2023 11-28-54'
+
+# Define input directory
+if input_folder is None:
+    input_folder = get_folder_path("Choose your input folder")
 
 # Output directory where classified images will be copied
 output_directory = 'C:/Users/I539356/Downloads/Gendered'
@@ -51,9 +74,9 @@ os.makedirs(output_female_dir, exist_ok=True)
 os.makedirs(output_neither_dir, exist_ok=True)
 
 # Iterate through the images and categorize and copy them
-for filename in os.listdir(image_folder):
+for filename in os.listdir(input_folder):
     if any(filename.lower().endswith(ext) for ext in ['.jpg', '.jpeg', '.png']):
-        image_path = os.path.join(image_folder, filename)
+        image_path = os.path.join(input_folder, filename)
         gender = predict_gender(image_path)
 
         # Determine the destination folder
