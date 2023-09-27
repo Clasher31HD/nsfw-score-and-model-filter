@@ -160,7 +160,7 @@ train_generator = train_datagen.flow_from_directory(
 
 print("Loading model...")
 # Load the pre-trained MobileNetV2 model (excluding the top layer)
-base_model = MobileNetV2(weights='imagenet', include_top=False)
+base_model = MODEL_SELECTION[int(model_type)](weights='imagenet', include_top=False)
 
 # Add custom layers for gender classification
 x = base_model.output
