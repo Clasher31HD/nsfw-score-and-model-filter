@@ -133,7 +133,7 @@ if input_folder is None:
 
 # Define input directory
 if output_folder is None:
-    output_folder = get_folder_path("Choose your input folder")
+    output_folder = get_folder_path("Choose your output folder")
 
 
 # Define image dimensions and batch size
