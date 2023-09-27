@@ -83,3 +83,6 @@ history = model.fit(train_generator,
 
 # Save the trained model
 model.save('gender_classification_model.h5')
+
+print("Gender training complete.")
+exit()

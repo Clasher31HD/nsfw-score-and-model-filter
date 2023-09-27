@@ -115,3 +115,6 @@ for filename in os.listdir(input_folder):
 
         # Copy the image to the appropriate destination folder
         shutil.copy(image_path, os.path.join(destination, filename))
+
+print("Gender classification complete.")
+exit()
