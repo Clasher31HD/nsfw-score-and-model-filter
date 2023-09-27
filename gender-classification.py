@@ -10,6 +10,8 @@ from PyQt5.QtWidgets import QApplication, QFileDialog
 from pathlib import Path
 
 input_folder = None
+output_folder = None
+model_file = None
 
 # Create the application
 app = QApplication([])
@@ -27,6 +29,18 @@ def get_folder_path(message):
             print("Invalid input selected. Please try again.\n")
 
 
+def get_file_path(message):
+    while True:
+        print(message)
+        file_path_input, _ = QFileDialog.getOpenFileName(None, message, filter="Model files (*.h5);;All files (*)")
+
+        if file_path_input:
+            file_path = Path(file_path_input)
+            return file_path
+        else:
+            print("Invalid input selected. Please try again.\n")
+
+
 # Define a function to predict gender
 def predict_gender(image_path):
     img = image.load_img(image_path, target_size=(224, 224))
@@ -36,7 +50,7 @@ def predict_gender(image_path):
     gender_prediction = model.predict(img)
 
     # Map class indices to labels
-    class_labels = ['Male', 'Female', 'Neither']
+    class_labels = ['Male', 'Female', 'Both', 'Neither']
     predicted_label = class_labels[np.argmax(gender_prediction)]
 
     return predicted_label
@@ -53,23 +67,30 @@ predictions = Dense(3, activation='softmax')(x)  # Adjust the output layer for 3
 
 model = Model(inputs=base_model.input, outputs=predictions)
 
+# Add code to select the model file
+if model_file is None:
+    model_file = get_file_path("Choose the model file")
+
 # Load the trained weights for gender classification
-model.load_weights('gender_classification_model.h5')
+model.load_weights(str(model_file))
 
 # Define input directory
 if input_folder is None:
     input_folder = get_folder_path("Choose your input folder")
 
-# Output directory where classified images will be copied
-output_directory = 'C:/Users/I539356/Downloads/Gendered'
+# Define input directory
+if output_folder is None:
+    output_folder = get_folder_path("Choose your output folder")
 
 # Create output directories if they don't exist
-output_male_dir = os.path.join(output_directory, 'male')
-output_female_dir = os.path.join(output_directory, 'female')
-output_neither_dir = os.path.join(output_directory, 'neither')
+output_male_dir = os.path.join(output_folder, 'male')
+output_female_dir = os.path.join(output_folder, 'female')
+output_both_dir = os.path.join(output_folder, 'both')
+output_neither_dir = os.path.join(output_folder, 'neither')
 
 os.makedirs(output_male_dir, exist_ok=True)
 os.makedirs(output_female_dir, exist_ok=True)
+os.makedirs(output_both_dir, exist_ok=True)
 os.makedirs(output_neither_dir, exist_ok=True)
 
 # Iterate through the images and categorize and copy them
@@ -83,6 +104,8 @@ for filename in os.listdir(input_folder):
             destination = output_male_dir
         elif gender == 'Female':
             destination = output_female_dir
+        elif gender == 'Both':
+            destination = output_both_dir
         else:
             destination = output_neither_dir
 
