@@ -100,7 +100,7 @@ def predict_gender(image_path):
     gender_prediction = model.predict(img)
 
     # Map class indices to labels
-    class_labels = ['Male', 'Female', 'Both', 'Neither']
+    class_labels = ['male', 'female', 'both', 'neither']
     predicted_label = class_labels[np.argmax(gender_prediction)]
 
     return predicted_label
@@ -203,11 +203,11 @@ for filename in os.listdir(input_folder):
         gender = predict_gender(image_path)
 
         # Determine the destination folder
-        if gender == 'Male':
+        if gender == 'male':
             destination = output_male_dir
-        elif gender == 'Female':
+        elif gender == 'female':
             destination = output_female_dir
-        elif gender == 'Both':
+        elif gender == 'both':
             destination = output_both_dir
         else:
             destination = output_neither_dir
