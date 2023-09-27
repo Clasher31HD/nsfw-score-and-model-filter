@@ -65,7 +65,7 @@ base_model = MobileNetV2(weights='imagenet', include_top=False, input_shape=(224
 x = base_model.output
 x = GlobalAveragePooling2D()(x)
 x = Dense(128, activation='relu')(x)
-predictions = Dense(3, activation='softmax')(x)  # Adjust the output layer for 3 classes
+predictions = Dense(4, activation='softmax')(x)  # Adjust the output layer for 4 classes
 
 model = Model(inputs=base_model.input, outputs=predictions)
 
