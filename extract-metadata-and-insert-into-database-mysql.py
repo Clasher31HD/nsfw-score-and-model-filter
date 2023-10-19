@@ -12,10 +12,13 @@ def extract_metadata(image_path):
 
             # Extract "File Name," "File Size," and "Directory"
             file_name = img.info.get('File Name', '')
+            print("File Name: " + file_name)
             if file_name:
                 match = re.search(r'File Name:\s*([^,]+)', file_name)
+                print("Match: " + str(match))
                 if match:
                     metadata_dict['File Name'] = match.group(1).strip()
+                    print("Metadata Dict: " + metadata_dict['File Name'])
 
             directory = img.info.get('Directory', '')
             if directory:
