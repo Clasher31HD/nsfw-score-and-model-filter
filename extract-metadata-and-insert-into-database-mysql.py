@@ -102,7 +102,7 @@ def insert_metadata_into_database(conn, metadata):
             FileName, Directory, FileSize, ImageSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed,
             ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ''', (
         metadata.get('File Name', ''),
         metadata.get('Directory', ''),
