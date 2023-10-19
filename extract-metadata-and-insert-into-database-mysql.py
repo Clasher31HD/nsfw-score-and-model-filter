@@ -76,7 +76,7 @@ def connect_database(database_name):
             FileName VARCHAR(255),
             Directory TEXT,
             FileSize TEXT,
-            Image Size TEXT,
+            ImageSize TEXT,
             PositivePrompt TEXT,
             NegativePrompt TEXT,
             Steps TEXT,
@@ -99,8 +99,8 @@ def insert_metadata_into_database(conn, metadata):
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO ImageMetadata (
-            filename, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, Size, ModelHash,
-            Model, SeedResizeFrom, DenoisingStrength, Version
+            FileName, Directory, FileSize, ImageSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed,
+            ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ''', (
