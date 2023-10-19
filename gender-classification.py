@@ -184,7 +184,7 @@ print("Model loaded")
 if input_folder is None:
     input_folder = get_folder_path("Choose your input folder")
 
-# Define input directory
+# Define output directory
 if output_folder is None:
     output_folder = get_folder_path("Choose your output folder")
 

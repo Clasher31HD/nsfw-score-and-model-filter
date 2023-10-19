@@ -4,24 +4,54 @@ import re
 import mysql.connector
 
 
-# Function to extract specific metadata subcategories from the "Parameters" field
-def extract_parameters_metadata(image_path):
+# Function to extract metadata categories and subcategories
+def extract_metadata(image_path):
     try:
         with Image.open(image_path) as img:
-            metadata = img.info.get('Parameters', '')
-
-            # Initialize a dictionary to store the subcategories
             metadata_dict = {}
 
-            # Define the subcategories to extract
+            # Extract "File Name," "File Size," and "Directory"
+            file_name = img.info.get('File Name', '')
+            if file_name:
+                match = re.search(r'File Name:\s*([^,]+)', file_name)
+                if match:
+                    metadata_dict['File Name'] = match.group(1).strip()
+
+            directory = img.info.get('Directory', '')
+            if directory:
+                match = re.search(r'Directory:\s*([^,]+)', directory)
+                if match:
+                    metadata_dict['Directory'] = match.group(1).strip()
+
+            file_size = img.info.get('File Size', '')
+            if file_size:
+                match = re.search(r'File Size:\s*([^,]+)', file_size)
+                if match:
+                    metadata_dict['File Size'] = match.group(1).strip()
+
+            image_size = img.info.get('Image Size', '')
+            if image_size:
+                match = re.search(r'Image Size:\s*([^,]+)', image_size)
+                if match:
+                    metadata_dict['Image Size'] = match.group(1).strip()
+
+            # Extract the beginning of the "Parameters" category
+            parameters = img.info.get('Parameters', '')
+            if parameters:
+                match = re.search(r'Parameters:(.*?)(?:Negative prompt|$)', parameters, re.DOTALL)
+                if match:
+                    parameters_text = match.group(1).strip()
+                    metadata_dict['Parameters'] = parameters_text
+
+            # Define the subcategories to extract from "Parameters"
             subcategories = [
                 "Negative prompt", "Steps", "Sampler", "CFG Scale", "Seed",
-                "Size", "Model hash", "Model", "Seed resize from", "Denoising strength", "Version"
+                "Model hash", "Model", "Seed resize from", "Denoising strength", "Version"
             ]
 
-            # Extract specific metadata subcategories
+            # Extract specific metadata subcategories from "Parameters"
             for subcategory in subcategories:
-                match = re.search(rf'{subcategory}:\s*([^,]+)', metadata)
+                match = re.search(rf'{subcategory}:\s*([^,]+)', parameters)
                 if match:
                     metadata_dict[subcategory] = match.group(1).strip()
 
@@ -31,19 +61,8 @@ def extract_parameters_metadata(image_path):
         return None
 
 
-# Function to extract text between "Parameters" and "Negative prompt"
-def extract_text_between_parameters_and_negative_prompt(metadata):
-    # Use regular expressions to extract the text between "Parameters" and "Negative prompt"
-    match = re.search(r'Parameters:(.*?)(?:Negative prompt|$)', metadata, re.DOTALL)
-    if match:
-        parameters_text = match.group(1).strip()
-        return parameters_text
-    else:
-        return None
-
-
 # Function to create a MySQL database and table
-def create_database(database_name):
+def connect_database(database_name):
     conn = mysql.connector.connect(
         host="your_host",
         user="your_username",
@@ -54,14 +73,16 @@ def create_database(database_name):
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ImageMetadata (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            filename VARCHAR(255),
+            FileName VARCHAR(255),
+            Directory TEXT,
+            FileSize TEXT,
+            Image Size TEXT,
             PositivePrompt TEXT,
             NegativePrompt TEXT,
             Steps TEXT,
             Sampler TEXT,
             CFGScale TEXT,
             Seed TEXT,
-            Size TEXT,
             ModelHash TEXT,
             Model TEXT,
             SeedResizeFrom TEXT,
@@ -74,7 +95,7 @@ def create_database(database_name):
 
 
 # Function to insert metadata into the MySQL database
-def insert_metadata_into_database(conn, filename, metadata):
+def insert_metadata_into_database(conn, metadata):
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO ImageMetadata (
@@ -83,14 +104,16 @@ def insert_metadata_into_database(conn, filename, metadata):
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
     ''', (
-        filename,
+        metadata.get('File Name', ''),
+        metadata.get('Directory', ''),
+        metadata.get('File Size', ''),
+        metadata.get('Image Size', ''),
         metadata.get('Positive prompt', ''),
         metadata.get('Negative prompt', ''),
         metadata.get('Steps', ''),
         metadata.get('Sampler', ''),
         metadata.get('CFG Scale', ''),
         metadata.get('Seed', ''),
-        metadata.get('Size', ''),
         metadata.get('Model hash', ''),
         metadata.get('Model', ''),
         metadata.get('Seed resize from', ''),
@@ -107,18 +130,16 @@ image_folder = 'path/to/your/image/folder'
 database_name = 'image_metadata'
 
 # Create a MySQL database and table if it doesn't exist
-conn = create_database(database_name)
+conn = connect_database(database_name)
 
 # Loop through the images in the folder
 for filename in os.listdir(image_folder):
     if filename.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
         image_path = os.path.join(image_folder, filename)
-        metadata = extract_parameters_metadata(image_path)
+        metadata = extract_metadata(image_path)
 
         if metadata is not None:
-            positive_prompt_text = extract_text_between_parameters_and_negative_prompt(metadata.get('Parameters', ''))
-            metadata['Positive prompt'] = positive_prompt_text
-            insert_metadata_into_database(conn, filename, metadata)
+            insert_metadata_into_database(conn, metadata)
             print(f"Metadata from {filename} extracted and added to the database.")
 
 # Close the database connection
