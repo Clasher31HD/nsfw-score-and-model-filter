@@ -1,6 +1,7 @@
 import os
 from PIL import Image
 from datetime import datetime, timedelta
+from pathlib import Path
 import hashlib
 import mysql.connector
 import json
@@ -199,8 +200,8 @@ try:
     password = config["password"]
     database_name = config["database_name"]
     table_name = config["table_name"]
-    image_folder = config["image_folder"]
-    use_yesterday = config["use_yesterday"]
+    image_folder = Path(config["image_folder"])
+    use_yesterday = config.get("use_yesterday", False)
 except (KeyError, ValueError) as e:
     raise ValueError(f"Invalid configuration: {str(e)}")
 
