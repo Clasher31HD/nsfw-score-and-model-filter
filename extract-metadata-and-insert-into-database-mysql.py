@@ -1,5 +1,6 @@
 import os
 from PIL import Image
+import hashlib
 import mysql.connector
 
 
@@ -16,6 +17,27 @@ def get_image_metadata(image_path):
 
 def extract_metadata_from_parameter(metadata_str, image_path):
     metadata_dict = {}
+
+    hashermd5 = hashlib.md5()
+    hashersha1 = hashlib.sha1()
+    hashersha256 = hashlib.sha256()
+
+    # Get Hash values
+    with open(image_path, "rb") as file:
+        while True:
+            chunk = file.read(4096)  # Read in 4KB chunks
+            if not chunk:
+                break
+            hashermd5.update(chunk)
+            hashersha1.update(chunk)
+            hashersha256.update(chunk)
+
+    hash_md5 = hashermd5.hexdigest()
+    hash_sha1 = hashersha1.hexdigest()
+    hash_sha256 = hashersha256.hexdigest()
+    metadata_dict["MD5"] = hash_md5
+    metadata_dict["SHA1"] = hash_sha1
+    metadata_dict["SHA256"] = hash_sha256
 
     # Add filename, directory, and file size to the metadata
     file_name = os.path.basename(image_path)
@@ -99,7 +121,10 @@ def connect_database(database_name):
             Model TEXT,
             SeedResizeFrom TEXT,
             DenoisingStrength TEXT,
-            Version TEXT
+            Version TEXT,
+            MD5 TEXT,
+            SHA1 TEXT,
+            SHA256 TEXT
         )
     ''')
     conn.commit()
@@ -113,10 +138,9 @@ def insert_metadata_into_database(conn, metadata):
     # Check if the combination of FileName and Directory already exists in the database
     query = '''
     SELECT COUNT(*) FROM ImageMetadata
-    WHERE FileName = %s AND Seed = %s AND FileSize = %s AND ModelHash = %s
+    WHERE SHA256 = %s
     '''
-    cursor.execute(query, (metadata.get('File Name', ''), metadata.get('Seed', ''), metadata.get('File Size', ''),
-                           metadata.get('Model hash', '')))
+    cursor.execute(query, (metadata.get('SHA256', '')))
     result = cursor.fetchone()
 
     if result[0] == 0:
@@ -124,9 +148,9 @@ def insert_metadata_into_database(conn, metadata):
         cursor.execute('''
             INSERT INTO ImageMetadata (
                 FileName, Directory, FileSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
-                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version
+                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, MD5, SHA1, SHA256
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             metadata.get('File Name', ''),
             metadata.get('Directory', ''),
@@ -142,7 +166,10 @@ def insert_metadata_into_database(conn, metadata):
             metadata.get('Model', ''),
             metadata.get('Seed resize from', ''),
             metadata.get('Denoising strength', ''),
-            metadata.get('Version', '')
+            metadata.get('Version', ''),
+            metadata.get('MD5', ''),
+            metadata.get('SHA1', ''),
+            metadata.get('SHA256', '')
         ))
         conn.commit()
         print(f"Metadata from {metadata.get('File Name', '')} extracted and added to the database.")
