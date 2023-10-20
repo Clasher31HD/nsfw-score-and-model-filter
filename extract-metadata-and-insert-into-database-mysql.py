@@ -132,10 +132,8 @@ for filename in os.listdir(image_folder):
         for key, value in extracted_metadata.items():
             print(f"{key}: {value}")
 
-        metadata = extracted_metadata
-
-        if metadata is not None:
-            insert_metadata_into_database(conn, metadata)
+        if extracted_metadata is not None:
+            insert_metadata_into_database(conn, extracted_metadata)
             print(f"Metadata from {filename} extracted and added to the database.")
 
 # Close the database connection
