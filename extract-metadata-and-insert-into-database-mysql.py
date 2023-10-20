@@ -1,6 +1,5 @@
 import os
 from PIL import Image
-import re
 import mysql.connector
 
 
@@ -22,9 +21,9 @@ def extract_metadata_from_parameter(metadata_str, image_path):
     file_name = os.path.basename(image_path)
     directory = os.path.dirname(image_path)
     file_size = os.path.getsize(image_path)
-    metadata_dict["File Name"] = file_name
+    metadata_dict["File Name"] = file_name.strip(".png")
     metadata_dict["Directory"] = directory
-    metadata_dict["File Size"] = f"{file_size} bytes"
+    metadata_dict["File Size"] = file_size
 
     # Split by the first occurrence of "Negative prompt"
     sections = metadata_str.split("Negative prompt:")
@@ -36,8 +35,7 @@ def extract_metadata_from_parameter(metadata_str, image_path):
         metadata_dict["Positive prompt"] = positive_prompt
 
         if len(negative_prompt_and_steps) == 2:
-            # Exclude the label "Negative prompt:" from the content
-            negative_prompt = negative_prompt_and_steps[0].strip()
+            negative_prompt = "Negative prompt:" + negative_prompt_and_steps[0]
             steps_and_content = "Steps:" + negative_prompt_and_steps[1]
 
             metadata_dict["Negative prompt"] = negative_prompt
@@ -106,7 +104,7 @@ def insert_metadata_into_database(conn, metadata):
         metadata.get('Negative prompt', ''),
         metadata.get('Steps', ''),
         metadata.get('Sampler', ''),
-        metadata.get('CFG Scale', ''),
+        metadata.get('CFG scale', ''),
         metadata.get('Seed', ''),
         metadata.get('Size', ''),
         metadata.get('Model hash', ''),
