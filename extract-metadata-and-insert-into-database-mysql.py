@@ -113,9 +113,9 @@ def insert_metadata_into_database(conn, metadata):
     # Check if the combination of FileName and Directory already exists in the database
     query = '''
     SELECT COUNT(*) FROM ImageMetadata
-    WHERE FileName = %s AND Directory = %s AND FileSize = %s AND Seed = %s AND ModelHash = %s
+    WHERE FileName = %s AND FileSize = %s AND Seed = %s AND ModelHash = %s
     '''
-    cursor.execute(query, (metadata.get('File Name', ''), metadata.get('Directory', ''), metadata.get('FileSize', ''),
+    cursor.execute(query, (metadata.get('File Name', ''), metadata.get('FileSize', ''),
                            metadata.get('Seed', ''), metadata.get('ModelHash', '')))
     result = cursor.fetchone()
 
