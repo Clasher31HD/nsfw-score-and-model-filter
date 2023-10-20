@@ -115,7 +115,8 @@ def insert_metadata_into_database(conn, metadata):
     SELECT COUNT(*) FROM ImageMetadata
     WHERE FileName = %s AND Directory = %s AND FileSize = %s AND Seed = %s AND ModelHash = %s
     '''
-    cursor.execute(query, (metadata.get('File Name', ''), metadata.get('Directory', '')))
+    cursor.execute(query, (metadata.get('File Name', ''), metadata.get('Directory', ''), metadata.get('FileSize', ''),
+                           metadata.get('Seed', ''), metadata.get('ModelHash', '')))
     result = cursor.fetchone()
 
     if result[0] == 0:
