@@ -36,7 +36,8 @@ def extract_metadata_from_parameter(metadata_str, image_path):
         metadata_dict["Positive prompt"] = positive_prompt
 
         if len(negative_prompt_and_steps) == 2:
-            negative_prompt = "Negative prompt:" + negative_prompt_and_steps[0]
+            # Exclude the label "Negative prompt:" from the content
+            negative_prompt = negative_prompt_and_steps[0].strip()
             steps_and_content = "Steps:" + negative_prompt_and_steps[1]
 
             metadata_dict["Negative prompt"] = negative_prompt
