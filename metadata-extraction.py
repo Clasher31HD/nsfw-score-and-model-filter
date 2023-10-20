@@ -209,7 +209,7 @@ if use_yesterday == "True":
     today = datetime.now()
     yesterday = today - timedelta(days=1)
     formatted_yesterday = yesterday.strftime("%Y-%m-%d")
-    image_folder = image_folder / formatted_yesterday
+    image_folder = os.path.join(image_folder, formatted_yesterday)
 
 # Create a MySQL database and table if it doesn't exist
 conn = connect_database(host, user, password, database_name, table_name)
