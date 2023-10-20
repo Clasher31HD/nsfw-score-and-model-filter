@@ -54,7 +54,7 @@ def extract_metadata_from_parameter(metadata_str, image_path):
 
     # Add filename, directory, and file size to the metadata
     file_name = os.path.basename(image_path)
-    directory = os.path.dirname(image_path)
+    directory = os.path.basename(os.path.dirname(image_path))
     file_size = os.path.getsize(image_path)
     metadata_dict["File Name"] = file_name.strip(".png")
     metadata_dict["Directory"] = directory.split('/')[-2]
