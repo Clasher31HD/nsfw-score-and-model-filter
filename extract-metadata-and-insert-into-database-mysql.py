@@ -122,17 +122,16 @@ conn = connect_database(database_name)
 
 # Loop through the images in the folder
 for filename in os.listdir(image_folder):
-    if filename.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
-        metadata = get_image_metadata(filename)
-
+    if filename.endswith(('.jpg', '.jpeg', '.png')):
+        image_path = os.path.join(image_folder, filename)
+        metadata = get_image_metadata(image_path)
         parameters_metadata = metadata.get("parameters", "")
-        extracted_metadata = extract_metadata_from_parameter(parameters_metadata, filename)
+        extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path)
 
         print("Extracted Metadata:")
         for key, value in extracted_metadata.items():
             print(f"{key}: {value}")
 
-        image_path = os.path.join(image_folder, filename)
         metadata = extracted_metadata
 
         if metadata is not None:
