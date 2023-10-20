@@ -21,34 +21,29 @@ def extract_metadata_from_parameter(metadata_str, image_path):
     file_name = os.path.basename(image_path)
     directory = os.path.dirname(image_path)
     file_size = os.path.getsize(image_path)
-    metadata_dict["File Name"] = file_name.strip(".png")
+    metadata_dict["File Name"] = file_name
     metadata_dict["Directory"] = directory
     metadata_dict["File Size"] = file_size
 
-    # Split by the first occurrence of "Negative prompt"
-    sections = metadata_str.split("Negative prompt:")
+    # Split by the first occurrence of "Steps"
+    sections = metadata_str.split("Steps:", 1)
 
     if len(sections) == 2:
         positive_prompt = sections[0].strip()
-        negative_prompt_and_steps = sections[1].strip().split("Steps:", 1)
 
+        # Include the "Positive prompt" content
         metadata_dict["Positive prompt"] = positive_prompt
+        metadata_dict["Steps"] = "Steps: " + sections[1].strip()
 
-        if len(negative_prompt_and_steps) == 2:
-            negative_prompt = "Negative prompt:" + negative_prompt_and_steps[0]
-            steps_and_content = "Steps:" + negative_prompt_and_steps[1]
-
-            metadata_dict["Negative prompt"] = negative_prompt
-
-            # Split the content after "Steps:" into key-value pairs
-            content_segments = steps_and_content.split(", ")
-            for segment in content_segments:
-                key_value = segment.split(": ", 1)
-                if len(key_value) == 2:
-                    key, value = key_value[0], key_value[1]
-                    metadata_dict[key] = value
+        # Split the content after "Steps:" into key-value pairs
+        content_segments = sections[1].strip().split(", ")
+        for segment in content_segments:
+            key_value = segment.split(": ", 1)
+            if len(key_value) == 2:
+                key, value = key_value[0], key_value[1]
+                metadata_dict[key] = value
     else:
-        # If "Negative prompt" is not found, consider the entire section as "Positive prompt"
+        # If "Steps" is not found, consider the entire section as "Positive prompt"
         metadata_dict["Positive prompt"] = metadata_str
 
     return metadata_dict
