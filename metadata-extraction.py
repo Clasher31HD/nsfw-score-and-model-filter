@@ -121,23 +121,23 @@ def connect_database(host, user, password, database_name, table_name):
         CREATE TABLE IF NOT EXISTS {table_name} (
             id INT AUTO_INCREMENT PRIMARY KEY,
             FileName VARCHAR(255),
-            Directory VARCHAR(10),
-            FileSize INT,
+            Directory TEXT,
+            FileSize TEXT,
             PositivePrompt TEXT,
             NegativePrompt TEXT,
-            Steps INT,
+            Steps TEXT,
             Sampler TEXT,
-            CFGScale DECIMAL(5, 2),
+            CFGScale TEXT,
             Seed TEXT,
             ImageSize TEXT,
-            ModelHash CHAR(10),
+            ModelHash TEXT,
             Model TEXT,
-            SeedResizeFrom VARCHAR(10),
-            DenoisingStrength DECIMAL(3, 2),
-            Version VARCHAR(10),
-            MD5 CHAR(32),
-            SHA1 CHAR(40),
-            SHA256 CHAR(64)
+            SeedResizeFrom TEXT,
+            DenoisingStrength TEXT,
+            Version TEXT,
+            MD5 TEXT,
+            SHA1 TEXT,
+            SHA256 TEXT
         )
     '''
     cursor.execute(create_table_query)
@@ -167,7 +167,7 @@ def insert_metadata_into_database(conn, metadata):
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             metadata.get('File Name', ''),
-            metadata.get('Directory', '')[:10],
+            metadata.get('Directory', ''),
             metadata.get('File Size', ''),
             metadata.get('Positive prompt', ''),
             metadata.get('Negative prompt', ''),
@@ -176,16 +176,15 @@ def insert_metadata_into_database(conn, metadata):
             metadata.get('CFG scale', ''),
             metadata.get('Seed', ''),
             metadata.get('Size', ''),
-            metadata.get('Model hash', '')[:10],
+            metadata.get('Model hash', ''),
             metadata.get('Model', ''),
-            metadata.get('Seed resize from', '')[:10],
+            metadata.get('Seed resize from', ''),
             metadata.get('Denoising strength', ''),
-            metadata.get('Version', '')[:10],
-            metadata.get('MD5', '')[:32],
-            metadata.get('SHA1', '')[:40],
-            metadata.get('SHA256', '')[:64]
+            metadata.get('Version', ''),
+            metadata.get('MD5', ''),
+            metadata.get('SHA1', ''),
+            metadata.get('SHA256', '')
         ))
-
         conn.commit()
         print(f"Metadata from {metadata.get('File Name', '')} extracted and added to the database.")
     else:
