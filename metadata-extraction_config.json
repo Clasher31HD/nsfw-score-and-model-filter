@@ -4,5 +4,6 @@
   "password": "",
   "database_name": "",
   "table_name": "",
-  "image_folder": ""
+  "image_folder": "",
+  "use_yesterday": ""
 }

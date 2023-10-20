@@ -1,5 +1,6 @@
 import os
 from PIL import Image
+from datetime import datetime, timedelta
 import hashlib
 import mysql.connector
 import json
@@ -190,6 +191,7 @@ def insert_metadata_into_database(conn, metadata):
         print(f"Metadata from {metadata.get('File Name', '')} already exists in the database. Skipping insert.")
 
 
+
 try:
     config = read_configuration()
     host = config["host"]
@@ -198,22 +200,30 @@ try:
     database_name = config["database_name"]
     table_name = config["table_name"]
     image_folder = config["image_folder"]
+    use_yesterday = config["use_yesterday"]
 except (KeyError, ValueError) as e:
     raise ValueError(f"Invalid configuration: {str(e)}")
+
+if use_yesterday is "True":
+    today = datetime.now()
+    yesterday = today - timedelta(days=1)
+    formatted_yesterday = yesterday.strftime("%d-%m-%Y")
+    image_folder = image_folder / formatted_yesterday
 
 # Create a MySQL database and table if it doesn't exist
 conn = connect_database(host, user, password, database_name, table_name)
 
 # Loop through the images in the folder
-for filename in os.listdir(image_folder):
-    if filename.endswith('.png'):
-        image_path = os.path.join(image_folder, filename)
-        metadata = get_image_metadata(image_path)
-        parameters_metadata = metadata.get("parameters", "")
-        extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path)
+for root, dirs, files in os.walk(image_folder):
+    for filename in files:
+        if filename.endswith('.png'):
+            image_path = os.path.join(root, filename)
+            metadata = get_image_metadata(image_path)
+            parameters_metadata = metadata.get("parameters", "")
+            extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path)
 
-        if extracted_metadata is not None:
-            insert_metadata_into_database(conn, extracted_metadata)
+            if extracted_metadata is not None:
+                insert_metadata_into_database(conn, extracted_metadata)
 
 # Close the database connection
 conn.close()
