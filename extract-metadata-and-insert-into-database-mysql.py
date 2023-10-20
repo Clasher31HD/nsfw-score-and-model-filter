@@ -167,9 +167,6 @@ for filename in os.listdir(image_folder):
         parameters_metadata = metadata.get("parameters", "")
         extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path)
 
-        for key, value in extracted_metadata.items():
-            print(f"{key}: {value}")
-
         if extracted_metadata is not None:
             insert_metadata_into_database(conn, extracted_metadata)
 
