@@ -204,7 +204,7 @@ try:
 except (KeyError, ValueError) as e:
     raise ValueError(f"Invalid configuration: {str(e)}")
 
-if use_yesterday is "True":
+if use_yesterday == "True":
     today = datetime.now()
     yesterday = today - timedelta(days=1)
     formatted_yesterday = yesterday.strftime("%d-%m-%Y")
