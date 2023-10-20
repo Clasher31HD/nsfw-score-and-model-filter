@@ -128,7 +128,7 @@ def connect_database(host, user, password, database_name, table_name):
             Steps INT,
             Sampler TEXT,
             CFGScale DECIMAL(5, 2),
-            Seed INT,
+            Seed TEXT,
             ImageSize TEXT,
             ModelHash CHAR(10),
             Model TEXT,
