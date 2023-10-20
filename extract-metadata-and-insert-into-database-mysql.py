@@ -5,63 +5,47 @@ import mysql.connector
 
 
 # Function to extract metadata categories and subcategories
-def extract_metadata(image_path):
+def get_image_metadata(image_path):
     try:
         with Image.open(image_path) as img:
-            metadata_dict = {}
-
-            # Extract "File Name," "File Size," and "Directory"
-            file_name = img.info.get('File Name', '')
-            print("File Name: " + file_name)
-            if file_name:
-                match = re.search(r'File Name:\s*([^,]+)', file_name)
-                print("Match: " + str(match))
-                if match:
-                    metadata_dict['File Name'] = match.group(1).strip()
-                    print("Metadata Dict: " + metadata_dict['File Name'])
-
-            directory = img.info.get('Directory', '')
-            if directory:
-                match = re.search(r'Directory:\s*([^,]+)', directory)
-                if match:
-                    metadata_dict['Directory'] = match.group(1).strip()
-
-            file_size = img.info.get('File Size', '')
-            if file_size:
-                match = re.search(r'File Size:\s*([^,]+)', file_size)
-                if match:
-                    metadata_dict['File Size'] = match.group(1).strip()
-
-            image_size = img.info.get('Image Size', '')
-            if image_size:
-                match = re.search(r'Image Size:\s*([^,]+)', image_size)
-                if match:
-                    metadata_dict['Image Size'] = match.group(1).strip()
-
-            # Extract the beginning of the "Parameters" category
-            parameters = img.info.get('Parameters', '')
-            if parameters:
-                match = re.search(r'Parameters:(.*?)(?:Negative prompt|$)', parameters, re.DOTALL)
-                if match:
-                    parameters_text = match.group(1).strip()
-                    metadata_dict['Parameters'] = parameters_text
-
-            # Define the subcategories to extract from "Parameters"
-            subcategories = [
-                "Negative prompt", "Steps", "Sampler", "CFG Scale", "Seed",
-                "Model hash", "Model", "Seed resize from", "Denoising strength", "Version"
-            ]
-
-            # Extract specific metadata subcategories from "Parameters"
-            for subcategory in subcategories:
-                match = re.search(rf'{subcategory}:\s*([^,]+)', parameters)
-                if match:
-                    metadata_dict[subcategory] = match.group(1).strip()
-
-            return metadata_dict
+            metadata = img.info
+        return metadata
     except Exception as e:
-        print(f"Error extracting metadata from {image_path}: {e}")
-        return None
+        print(f"An error occurred: {str(e)}")
+        return {}
+
+
+def extract_metadata_from_parameter(metadata_str, image_path):
+    metadata_dict = {}
+
+    # Add filename, directory, and file size to the metadata
+    file_name = os.path.basename(image_path)
+    directory = os.path.dirname(image_path)
+    file_size = os.path.getsize(image_path)
+    metadata_dict["File Name"] = file_name
+    metadata_dict["Directory"] = directory
+    metadata_dict["File Size"] = f"{file_size} bytes"
+
+    # Split by the first occurrence of "Steps:"
+    sections = metadata_str.split("Steps: ", 1)
+
+    if len(sections) == 2:
+        positive_prompt = sections[0].strip()
+        steps_and_content = sections[1].strip()
+
+        # Include the "Steps" label and its content
+        metadata_dict["Positive prompt"] = positive_prompt
+        metadata_dict["Steps"] = steps_and_content.split(", ")[0]
+
+        # Split the content after "Steps:" into key-value pairs
+        content_segments = steps_and_content.split(", ")
+        for segment in content_segments:
+            key_value = segment.split(": ", 1)
+            if len(key_value) == 2:
+                key, value = key_value[0], key_value[1]
+                metadata_dict[key] = value
+
+    return metadata_dict
 
 
 # Function to create a MySQL database and table
@@ -79,13 +63,13 @@ def connect_database(database_name):
             FileName VARCHAR(255),
             Directory TEXT,
             FileSize TEXT,
-            ImageSize TEXT,
             PositivePrompt TEXT,
             NegativePrompt TEXT,
             Steps TEXT,
             Sampler TEXT,
             CFGScale TEXT,
             Seed TEXT,
+            ImageSize TEXT,
             ModelHash TEXT,
             Model TEXT,
             SeedResizeFrom TEXT,
@@ -102,7 +86,7 @@ def insert_metadata_into_database(conn, metadata):
     cursor = conn.cursor()
     cursor.execute('''
         INSERT INTO ImageMetadata (
-            FileName, Directory, FileSize, ImageSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed,
+            FileName, Directory, FileSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, ImageSize,
             ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -110,13 +94,13 @@ def insert_metadata_into_database(conn, metadata):
         metadata.get('File Name', ''),
         metadata.get('Directory', ''),
         metadata.get('File Size', ''),
-        metadata.get('Image Size', ''),
         metadata.get('Positive prompt', ''),
         metadata.get('Negative prompt', ''),
         metadata.get('Steps', ''),
         metadata.get('Sampler', ''),
         metadata.get('CFG Scale', ''),
         metadata.get('Seed', ''),
+        metadata.get('Size', ''),
         metadata.get('Model hash', ''),
         metadata.get('Model', ''),
         metadata.get('Seed resize from', ''),
@@ -138,8 +122,17 @@ conn = connect_database(database_name)
 # Loop through the images in the folder
 for filename in os.listdir(image_folder):
     if filename.endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+        metadata = get_image_metadata(filename)
+
+        parameters_metadata = metadata.get("parameters", "")
+        extracted_metadata = extract_metadata_from_parameter(parameters_metadata, filename)
+
+        print("Extracted Metadata:")
+        for key, value in extracted_metadata.items():
+            print(f"{key}: {value}")
+
         image_path = os.path.join(image_folder, filename)
-        metadata = extract_metadata(image_path)
+        metadata = extracted_metadata
 
         if metadata is not None:
             insert_metadata_into_database(conn, metadata)
