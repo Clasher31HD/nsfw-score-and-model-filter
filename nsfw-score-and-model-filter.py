@@ -32,7 +32,7 @@ from tensorflow.keras.preprocessing import image
 from PyQt5.QtWidgets import QApplication, QFileDialog
 
 # Config path
-config_path = Path("config.json")
+config_path = Path("nsfw-score-and-model-filter_config.json")
 
 # Config values
 autonomous = None
@@ -570,7 +570,7 @@ if autonomous != "True":
             "score_or_class": score_or_class
         }
 
-        with open('config.json', 'w') as file:
+        with open('nsfw-score-and-model-filter_config.json', 'w') as file:
             json.dump(data, file, indent=4)
 
 # Count the total number of images in the input folder
