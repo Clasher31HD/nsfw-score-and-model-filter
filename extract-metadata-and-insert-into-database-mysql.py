@@ -2,6 +2,17 @@ import os
 from PIL import Image
 import hashlib
 import mysql.connector
+import json
+
+
+def read_configuration():
+    try:
+        with open("metadata-extraction_config.json", "r") as config_file:
+            return json.load(config_file)
+    except FileNotFoundError:
+        raise FileNotFoundError("metadata-extraction_config.json file not found.")
+    except json.JSONDecodeError:
+        raise ValueError("Invalid JSON format in metadata-extraction_config.json.")
 
 
 # Function to extract metadata categories and subcategories
@@ -96,16 +107,16 @@ def extract_metadata_from_parameter(metadata_str, image_path):
 
 
 # Function to create a MySQL database and table
-def connect_database(database_name):
+def connect_database(host, user, password, database_name, table_name):
     conn = mysql.connector.connect(
-        host="your_host",
-        user="your_username",
-        password="your_password",
+        host=host,
+        user=user,
+        password=password,
         database=database_name
     )
     cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS ImageMetadata (
+    create_table_query = f'''
+        CREATE TABLE IF NOT EXISTS {table_name} (
             id INT AUTO_INCREMENT PRIMARY KEY,
             FileName VARCHAR(255),
             Directory TEXT,
@@ -126,7 +137,8 @@ def connect_database(database_name):
             SHA1 TEXT,
             SHA256 TEXT
         )
-    ''')
+    '''
+    cursor.execute(create_table_query)
     conn.commit()
     return conn
 
@@ -178,11 +190,16 @@ def insert_metadata_into_database(conn, metadata):
         print(f"Metadata from {metadata.get('File Name', '')} already exists in the database. Skipping insert.")
 
 
-# Folder containing images
-image_folder = 'path/to/your/image/folder'
-
-# MySQL database configuration
-database_name = 'image_metadata'
+try:
+    config = read_configuration()
+    host = config["host"]
+    user = config["user"]
+    password = config["password"]
+    database_name = config["database_name"]
+    table_name = config["table_name"]
+    image_folder = config["image_folder"]
+except (KeyError, ValueError) as e:
+    raise ValueError(f"Invalid configuration: {str(e)}")
 
 # Create a MySQL database and table if it doesn't exist
 conn = connect_database(database_name)
