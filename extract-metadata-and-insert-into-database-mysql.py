@@ -113,7 +113,7 @@ def insert_metadata_into_database(conn, metadata):
     # Check if the combination of FileName and Directory already exists in the database
     query = '''
     SELECT COUNT(*) FROM ImageMetadata
-    WHERE FileName = %s AND Directory = %s
+    WHERE FileName = %s AND Directory = %s AND FileSize = %s AND Seed = %s AND ModelHash = %s
     '''
     cursor.execute(query, (metadata.get('File Name', ''), metadata.get('Directory', '')))
     result = cursor.fetchone()
@@ -161,7 +161,7 @@ conn = connect_database(database_name)
 
 # Loop through the images in the folder
 for filename in os.listdir(image_folder):
-    if filename.endswith(('.jpg', '.jpeg', '.png')):
+    if filename.endswith('.png'):
         image_path = os.path.join(image_folder, filename)
         metadata = get_image_metadata(image_path)
         parameters_metadata = metadata.get("parameters", "")
