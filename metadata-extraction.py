@@ -53,10 +53,10 @@ def extract_metadata_from_parameter(metadata_str, image_path):
     metadata_dict["SHA256"] = hash_sha256
 
     # Add filename, directory, and file size to the metadata
-    file_name = os.path.basename(image_path)
+    file_name = os.path.basename(image_path).strip(".png")
     directory = os.path.basename(os.path.dirname(image_path))
     file_size = os.path.getsize(image_path)
-    metadata_dict["File Name"] = file_name.strip(".png")
+    metadata_dict["File Name"] = file_name
     metadata_dict["Directory"] = directory
     metadata_dict["File Size"] = file_size
 
