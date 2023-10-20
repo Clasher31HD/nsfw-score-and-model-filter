@@ -26,24 +26,31 @@ def extract_metadata_from_parameter(metadata_str, image_path):
     metadata_dict["Directory"] = directory
     metadata_dict["File Size"] = f"{file_size} bytes"
 
-    # Split by the first occurrence of "Steps:"
-    sections = metadata_str.split("Steps: ", 1)
+    # Split by the first occurrence of "Negative prompt"
+    sections = metadata_str.split("Negative prompt:")
 
     if len(sections) == 2:
         positive_prompt = sections[0].strip()
-        steps_and_content = sections[1].strip()
+        negative_prompt_and_steps = sections[1].strip().split("Steps:", 1)
 
-        # Include the "Steps" label and its content
         metadata_dict["Positive prompt"] = positive_prompt
-        metadata_dict["Steps"] = steps_and_content.split(", ")[0]
 
-        # Split the content after "Steps:" into key-value pairs
-        content_segments = steps_and_content.split(", ")
-        for segment in content_segments:
-            key_value = segment.split(": ", 1)
-            if len(key_value) == 2:
-                key, value = key_value[0], key_value[1]
-                metadata_dict[key] = value
+        if len(negative_prompt_and_steps) == 2:
+            negative_prompt = "Negative prompt:" + negative_prompt_and_steps[0]
+            steps_and_content = "Steps:" + negative_prompt_and_steps[1]
+
+            metadata_dict["Negative prompt"] = negative_prompt
+
+            # Split the content after "Steps:" into key-value pairs
+            content_segments = steps_and_content.split(", ")
+            for segment in content_segments:
+                key_value = segment.split(": ", 1)
+                if len(key_value) == 2:
+                    key, value = key_value[0], key_value[1]
+                    metadata_dict[key] = value
+    else:
+        # If "Negative prompt" is not found, consider the entire section as "Positive prompt"
+        metadata_dict["Positive prompt"] = metadata_str
 
     return metadata_dict
 
