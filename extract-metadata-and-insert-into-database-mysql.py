@@ -106,33 +106,48 @@ def connect_database(database_name):
     return conn
 
 
-# Function to insert metadata into the MySQL database
+# Function to insert metadata into the MySQL database if it doesn't already exist
 def insert_metadata_into_database(conn, metadata):
     cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO ImageMetadata (
-            FileName, Directory, FileSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, ImageSize,
-            ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    ''', (
-        metadata.get('File Name', ''),
-        metadata.get('Directory', ''),
-        metadata.get('File Size', ''),
-        metadata.get('Positive prompt', ''),
-        metadata.get('Negative prompt', ''),
-        metadata.get('Steps', ''),
-        metadata.get('Sampler', ''),
-        metadata.get('CFG scale', ''),
-        metadata.get('Seed', ''),
-        metadata.get('Size', ''),
-        metadata.get('Model hash', ''),
-        metadata.get('Model', ''),
-        metadata.get('Seed resize from', ''),
-        metadata.get('Denoising strength', ''),
-        metadata.get('Version', '')
-    ))
-    conn.commit()
+
+    # Check if the combination of FileName and Directory already exists in the database
+    query = '''
+    SELECT COUNT(*) FROM ImageMetadata
+    WHERE FileName = %s AND Directory = %s
+    '''
+    cursor.execute(query, (metadata.get('File Name', ''), metadata.get('Directory', '')))
+    result = cursor.fetchone()
+
+    if result[0] == 0:
+        # The combination doesn't exist, so insert the metadata
+        cursor.execute('''
+            INSERT INTO ImageMetadata (
+                FileName, Directory, FileSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
+                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (
+            metadata.get('File Name', ''),
+            metadata.get('Directory', ''),
+            metadata.get('File Size', ''),
+            metadata.get('Positive prompt', ''),
+            metadata.get('Negative prompt', ''),
+            metadata.get('Steps', ''),
+            metadata.get('Sampler', ''),
+            metadata.get('CFG scale', ''),
+            metadata.get('Seed', ''),
+            metadata.get('Size', ''),
+            metadata.get('Model hash', ''),
+            metadata.get('Model', ''),
+            metadata.get('Seed resize from', ''),
+            metadata.get('Denoising strength', ''),
+            metadata.get('Version', '')
+        ))
+        conn.commit()
+        print(f"Metadata from {metadata.get('File Name', '')} extracted and added to the database.")
+    else:
+        # The combination already exists, so skip the insert
+        print(f"Metadata from {metadata.get('File Name', '')} already exists in the database. Skipping insert.")
 
 
 # Folder containing images
