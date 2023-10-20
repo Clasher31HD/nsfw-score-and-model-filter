@@ -31,16 +31,16 @@ def extract_metadata_from_parameter(metadata_str, image_path):
 
     if negative_prompt_index != -1:
         positive_prompt = metadata_str[:negative_prompt_index].strip()
-        metadata_dict["Positive prompt"] = positive_prompt
+        metadata_dict["Positive Prompt"] = positive_prompt
 
         remaining_content = metadata_str[negative_prompt_index:].strip()
         negative_prompt_end = remaining_content.find("Steps:")
 
         if negative_prompt_end != -1:
-            negative_prompt = remaining_content[:negative_prompt_end].strip()
-            metadata_dict["Negative prompt"] = negative_prompt
+            negative_prompt = remaining_content[len("Negative prompt:"):negative_prompt_end].strip()
+            metadata_dict["Negative Prompt"] = negative_prompt
         else:
-            metadata_dict["Negative prompt"] = remaining_content
+            metadata_dict["Negative Prompt"] = remaining_content
 
         steps_section = metadata_str[steps_index:].strip()
         metadata_dict["Steps"] = steps_section
@@ -54,7 +54,7 @@ def extract_metadata_from_parameter(metadata_str, image_path):
                 metadata_dict[key] = value
     elif steps_index != -1:
         positive_prompt = metadata_str[:steps_index].strip()
-        metadata_dict["Positive prompt"] = positive_prompt
+        metadata_dict["Positive Prompt"] = positive_prompt
 
         steps_section = metadata_str[steps_index:].strip()
         metadata_dict["Steps"] = steps_section
@@ -68,7 +68,7 @@ def extract_metadata_from_parameter(metadata_str, image_path):
                 metadata_dict[key] = value
     else:
         # If neither "Negative prompt" nor "Steps" is found, consider the entire section as "Positive prompt"
-        metadata_dict["Positive prompt"] = metadata_str
+        metadata_dict["Positive Prompt"] = metadata_str
 
     return metadata_dict
 
