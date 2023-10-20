@@ -140,7 +140,7 @@ def insert_metadata_into_database(conn, metadata):
     SELECT COUNT(*) FROM ImageMetadata
     WHERE SHA256 = %s
     '''
-    cursor.execute(query, (metadata.get('SHA256', '')))
+    cursor.execute(query, (metadata.get('SHA256', ''),))
     result = cursor.fetchone()
 
     if result[0] == 0:
