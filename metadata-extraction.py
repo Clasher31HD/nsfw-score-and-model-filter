@@ -208,7 +208,7 @@ except (KeyError, ValueError) as e:
 if use_yesterday == "True":
     today = datetime.now()
     yesterday = today - timedelta(days=1)
-    formatted_yesterday = yesterday.strftime("%d-%m-%Y")
+    formatted_yesterday = yesterday.strftime("%Y-%m-%d")
     image_folder = image_folder / formatted_yesterday
 
 # Create a MySQL database and table if it doesn't exist
