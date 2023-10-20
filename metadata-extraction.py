@@ -202,7 +202,7 @@ except (KeyError, ValueError) as e:
     raise ValueError(f"Invalid configuration: {str(e)}")
 
 # Create a MySQL database and table if it doesn't exist
-conn = connect_database(database_name)
+conn = connect_database(host, user, password, database_name, table_name)
 
 # Loop through the images in the folder
 for filename in os.listdir(image_folder):
