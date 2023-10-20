@@ -21,9 +21,9 @@ def extract_metadata_from_parameter(metadata_str, image_path):
     file_name = os.path.basename(image_path)
     directory = os.path.dirname(image_path)
     file_size = os.path.getsize(image_path)
-    metadata_dict["File Name"] = file_name
+    metadata_dict["File Name"] = file_name.strip(".png")
     metadata_dict["Directory"] = directory
-    metadata_dict["File Size"] = f"{file_size} bytes"
+    metadata_dict["File Size"] = file_size
 
     # Split by the first occurrence of "Negative prompt"
     sections = metadata_str.split("Negative prompt:")
