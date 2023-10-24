@@ -5,6 +5,7 @@ from pathlib import Path
 import hashlib
 import mysql.connector
 import json
+import opennsfw2 as n2
 
 
 def read_configuration():
@@ -18,7 +19,7 @@ def read_configuration():
 
 
 # Function to extract metadata categories and subcategories
-def get_image_metadata(image_path):
+def get_image_metadata(image_path, ):
     try:
         with Image.open(image_path) as img:
             metadata = img.info
@@ -30,6 +31,15 @@ def get_image_metadata(image_path):
 
 def extract_metadata_from_parameter(metadata_str, image_path):
     metadata_dict = {}
+    try:
+        img = Image.open(image_path)
+        img.thumbnail((512, 512))
+
+        nsfw_probability = n2.predict_image(image_path)
+
+        metadata_dict["NSFW"] = nsfw_probability
+    except (PIL.UnidentifiedImageError, OSError) as e:
+        print(f"Skipping image '{image_path.name}' due to an error: {str(e)}")
 
     hashermd5 = hashlib.md5()
     hashersha1 = hashlib.sha1()
@@ -135,6 +145,7 @@ def connect_database(host, user, password, database_name, table_name):
             SeedResizeFrom TEXT,
             DenoisingStrength TEXT,
             Version TEXT,
+            NSFW TEXT,
             MD5 TEXT,
             SHA1 TEXT,
             SHA256 TEXT
@@ -164,7 +175,7 @@ def insert_metadata_into_database(conn, metadata):
                 FileName, Directory, FileSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
                 ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, MD5, SHA1, SHA256
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             metadata.get('File Name', ''),
             metadata.get('Directory', ''),
@@ -181,6 +192,7 @@ def insert_metadata_into_database(conn, metadata):
             metadata.get('Seed resize from', ''),
             metadata.get('Denoising strength', ''),
             metadata.get('Version', ''),
+            metadata.get('NSFW', ''),
             metadata.get('MD5', ''),
             metadata.get('SHA1', ''),
             metadata.get('SHA256', '')
