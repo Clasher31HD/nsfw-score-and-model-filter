@@ -173,7 +173,7 @@ def insert_metadata_into_database(conn, metadata):
         cursor.execute('''
             INSERT INTO ImageMetadata (
                 FileName, Directory, FileSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
-                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, MD5, SHA1, SHA256
+                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFW, MD5, SHA1, SHA256
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
