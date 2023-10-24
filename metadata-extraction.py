@@ -5,7 +5,6 @@ from pathlib import Path
 import hashlib
 import mysql.connector
 import json
-import opennsfw2 as n2
 
 
 def read_configuration():
@@ -29,17 +28,23 @@ def get_image_metadata(image_path, ):
         return {}
 
 
-def extract_metadata_from_parameter(metadata_str, image_path):
+def extract_metadata_from_parameter(metadata_str, image_path, nsfw):
     metadata_dict = {}
-    try:
-        img = Image.open(image_path)
-        img.thumbnail((512, 512))
 
-        nsfw_probability = n2.predict_image(image_path)
+    if nsfw == "True":
+        import opennsfw2 as n2
+        try:
+            img = Image.open(image_path)
+            img.thumbnail((512, 512))
 
+            nsfw_probability = n2.predict_image(image_path)
+
+            metadata_dict["NSFW"] = nsfw_probability
+        except (PIL.UnidentifiedImageError, OSError) as e:
+            print(f"Skipping image '{image_path.name}' due to an error: {str(e)}")
+    else:
+        nsfw_probability = "Unknown"
         metadata_dict["NSFW"] = nsfw_probability
-    except (PIL.UnidentifiedImageError, OSError) as e:
-        print(f"Skipping image '{image_path.name}' due to an error: {str(e)}")
 
     hashermd5 = hashlib.md5()
     hashersha1 = hashlib.sha1()
@@ -214,6 +219,7 @@ try:
     table_name = config["table_name"]
     image_folder = Path(config["image_folder"])
     use_yesterday = config.get("use_yesterday", False)
+    nsfw = config.get("nsfw_probability", False)
 except (KeyError, ValueError) as e:
     raise ValueError(f"Invalid configuration: {str(e)}")
 
@@ -233,7 +239,7 @@ for root, dirs, files in os.walk(image_folder):
             image_path = os.path.join(root, filename)
             metadata = get_image_metadata(image_path)
             parameters_metadata = metadata.get("parameters", "")
-            extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path)
+            extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path, nsfw)
 
             if extracted_metadata is not None:
                 insert_metadata_into_database(conn, extracted_metadata)

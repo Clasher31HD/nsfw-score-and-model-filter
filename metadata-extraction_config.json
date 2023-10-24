@@ -5,5 +5,6 @@
   "database_name": "",
   "table_name": "",
   "image_folder": "",
-  "use_yesterday": ""
+  "use_yesterday": "",
+  "nsfw_probability": ""
 }
