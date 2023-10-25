@@ -40,7 +40,7 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw):
             nsfw_probability = n2.predict_image(image_path)
 
             metadata_dict["NSFW"] = nsfw_probability
-        except (PIL.UnidentifiedImageError, OSError) as e:
+        except OSError as e:
             print(f"Skipping image '{image_path.name}' due to an error: {str(e)}")
     else:
         nsfw_probability = "Unknown"
@@ -162,12 +162,12 @@ def connect_database(host, user, password, database_name, table_name):
 
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
-def insert_metadata_into_database(conn, metadata):
+def insert_metadata_into_database(conn, table, metadata):
     cursor = conn.cursor()
 
     # Check if the combination of FileName and Directory already exists in the database
-    query = '''
-    SELECT COUNT(*) FROM ImageMetadata
+    query = f'''
+    SELECT COUNT(*) FROM {table}
     WHERE SHA256 = %s
     '''
     cursor.execute(query, (metadata.get('SHA256', ''),))
@@ -175,8 +175,8 @@ def insert_metadata_into_database(conn, metadata):
 
     if result[0] == 0:
         # The combination doesn't exist, so insert the metadata
-        cursor.execute('''
-            INSERT INTO ImageMetadata (
+        cursor.execute(f'''
+            INSERT INTO {table} (
                 FileName, Directory, FileSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
                 ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFW, MD5, SHA1, SHA256
             )
@@ -242,7 +242,7 @@ for root, dirs, files in os.walk(image_folder):
             extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path, nsfw)
 
             if extracted_metadata is not None:
-                insert_metadata_into_database(conn, extracted_metadata)
+                insert_metadata_into_database(conn, table_name, extracted_metadata)
 
 # Close the database connection
 conn.close()
