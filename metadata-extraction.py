@@ -18,7 +18,7 @@ def read_configuration():
 
 
 # Function to extract metadata categories and subcategories
-def get_image_metadata(image_path, ):
+def get_image_metadata(image_path):
     try:
         with Image.open(image_path) as img:
             metadata = img.info
