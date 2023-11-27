@@ -39,12 +39,12 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw):
 
             nsfw_probability = n2.predict_image(image_path)
 
-            metadata_dict["NSFW"] = nsfw_probability
+            metadata_dict["NSFWProbability"] = nsfw_probability
         except OSError as e:
             print(f"Skipping image '{image_path.name}' due to an error: {str(e)}")
     else:
         nsfw_probability = "Unknown"
-        metadata_dict["NSFW"] = nsfw_probability
+        metadata_dict["NSFWProbability"] = nsfw_probability
 
     hashermd5 = hashlib.md5()
     hashersha1 = hashlib.sha1()
@@ -150,7 +150,7 @@ def connect_database(host, user, password, database_name, table_name):
             SeedResizeFrom TEXT,
             DenoisingStrength TEXT,
             Version TEXT,
-            NSFW TEXT,
+            NSFWProbability TEXT,
             MD5 TEXT,
             SHA1 TEXT,
             SHA256 TEXT
@@ -178,7 +178,7 @@ def insert_metadata_into_database(conn, table, metadata):
         cursor.execute(f'''
             INSERT INTO {table} (
                 FileName, Directory, FileSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
-                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFW, MD5, SHA1, SHA256
+                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFWProbability, MD5, SHA1, SHA256
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
@@ -197,7 +197,7 @@ def insert_metadata_into_database(conn, table, metadata):
             metadata.get('Seed resize from', ''),
             metadata.get('Denoising strength', ''),
             metadata.get('Version', ''),
-            metadata.get('NSFW', ''),
+            metadata.get('NSFWProbability', ''),
             metadata.get('MD5', ''),
             metadata.get('SHA1', ''),
             metadata.get('SHA256', '')
