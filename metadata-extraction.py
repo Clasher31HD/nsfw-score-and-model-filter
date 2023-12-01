@@ -4,17 +4,15 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import hashlib
 import mysql.connector
-import json
+import yaml
 
 
 def read_configuration():
     try:
-        with open("metadata-extraction_config.json", "r") as config_file:
-            return json.load(config_file)
+        with open("metadata_config.yml", "r") as config_file:
+            return yaml.safe_load(config_file)
     except FileNotFoundError:
-        raise FileNotFoundError("metadata-extraction_config.json file not found.")
-    except json.JSONDecodeError:
-        raise ValueError("Invalid JSON format in metadata-extraction_config.json.")
+        raise FileNotFoundError("metadata_config.yml file not found.")
 
 
 # Function to extract metadata categories and subcategories
@@ -219,7 +217,7 @@ try:
     table_name = config["table_name"]
     image_folder = Path(config["image_folder"])
     use_yesterday = config.get("use_yesterday", False)
-    nsfw = config.get("nsfw_probability", False)
+    nsfw = config.get("nsfw_probability", True)
 except (KeyError, ValueError) as e:
     raise ValueError(f"Invalid configuration: {str(e)}")
 
