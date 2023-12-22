@@ -267,7 +267,7 @@ def start_metadata_extractor():
         except (KeyError, ValueError) as e:
             raise ValueError(f"Invalid configuration: {str(e)}")
 
-        if use_yesterday == "True":
+        if use_yesterday:
             today = datetime.now()
             yesterday = today - timedelta(days=1)
             formatted_yesterday = yesterday.strftime("%Y-%m-%d")
