@@ -69,7 +69,7 @@ def get_image_metadata(image_path, logger):
 def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw_logger):
     metadata_dict = {}
 
-    if nsfw == "True":
+    if nsfw:
         import opennsfw2 as n2
         try:
             img = Image.open(image_path)
