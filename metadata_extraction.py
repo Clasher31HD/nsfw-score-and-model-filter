@@ -1,4 +1,5 @@
 import os
+import logging
 from PIL import Image
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -13,20 +14,51 @@ def read_configuration():
             return yaml.safe_load(config_file)
     except FileNotFoundError:
         raise FileNotFoundError("metadata_config.yml file not found.")
+    except yaml.YAMLError as e:
+        raise ValueError(f"Error parsing YAML in yts_config.yml: {e}")
+    
+
+def setup_logger():
+    config = read_configuration()
+    level = config["level"]
+    logs_directory = config["logs_directory"]
+    log_file = os.path.join(logs_directory, "Extraction.log")
+    extraction_log_file = os.path.join(logs_directory, "Info.log")
+
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+    file_handler = logging.FileHandler(log_file)
+    file_handler.setFormatter(formatter)
+
+    extraction_file_handler = logging.FileHandler(extraction_log_file)
+    extraction_file_handler.setFormatter(formatter)
+
+    file_handler.setLevel(level)
+    extraction_file_handler.setLevel(level)
+
+    logger = logging.getLogger(__name__)
+    logger.setLevel(level)
+    logger.addHandler(file_handler)
+
+    extraction_logger = logging.getLogger('download')
+    extraction_logger.setLevel(level)
+    extraction_logger.addHandler(extraction_file_handler)
+
+    return logger, extraction_logger
 
 
 # Function to extract metadata categories and subcategories
-def get_image_metadata(image_path):
+def get_image_metadata(image_path, logger):
     try:
         with Image.open(image_path) as img:
             metadata = img.info
         return metadata
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        logger.error(f"An error occurred: {str(e)}")
         return {}
 
 
-def extract_metadata_from_parameter(metadata_str, image_path, nsfw):
+def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger):
     metadata_dict = {}
 
     if nsfw == "True":
@@ -36,13 +68,15 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw):
             img.thumbnail((512, 512))
 
             nsfw_probability = n2.predict_image(image_path)
+            logger.info(f"NSFWProbability is {nsfw_probability}")
 
             metadata_dict["NSFWProbability"] = nsfw_probability
         except OSError as e:
-            print(f"Skipping image '{image_path.name}' due to an error: {str(e)}")
+            logger.warning(f"Skipping image '{image_path.name}' due to an error: {str(e)}")
     else:
         nsfw_probability = "Unknown"
         metadata_dict["NSFWProbability"] = nsfw_probability
+        logger.info(f"NSFW is off so no nsfw calculation")
 
     hashermd5 = hashlib.md5()
     hashersha1 = hashlib.sha1()
@@ -160,7 +194,7 @@ def connect_database(host, user, password, database_name, table_name):
 
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
-def insert_metadata_into_database(conn, table, metadata):
+def insert_metadata_into_database(conn, table, metadata, logger):
     cursor = conn.cursor()
 
     # Check if the combination of FileName and Directory already exists in the database
@@ -201,46 +235,56 @@ def insert_metadata_into_database(conn, table, metadata):
             metadata.get('SHA256', '')
         ))
         conn.commit()
-        print(f"Metadata from {metadata.get('File Name', '')} extracted and added to the database.")
+        logger.info(f"Metadata from {metadata.get('File Name', '')} extracted and added to the database.")
     else:
         # The combination already exists, so skip the insert
-        print(f"Metadata from {metadata.get('File Name', '')} already exists in the database. Skipping insert.")
+        logger.warning(f"Metadata from {metadata.get('File Name', '')} already exists in the database. Skipping insert.")
 
 
+def start_metadata_extractor():
+    logger, extraction_logger = setup_logger()
+    try:
+        try:
+            logger.info("Script started.")
+            
+            config = read_configuration()
+            host = config["host"]
+            user = config["user"]
+            password = config["password"]
+            database_name = config["database_name"]
+            table_name = config["table_name"]
+            image_folder = Path(config["image_folder"])
+            use_yesterday = config.get("use_yesterday", False)
+            nsfw = config.get("nsfw_probability", True)
+        except (KeyError, ValueError) as e:
+            raise ValueError(f"Invalid configuration: {str(e)}")
 
-try:
-    config = read_configuration()
-    host = config["host"]
-    user = config["user"]
-    password = config["password"]
-    database_name = config["database_name"]
-    table_name = config["table_name"]
-    image_folder = Path(config["image_folder"])
-    use_yesterday = config.get("use_yesterday", False)
-    nsfw = config.get("nsfw_probability", True)
-except (KeyError, ValueError) as e:
-    raise ValueError(f"Invalid configuration: {str(e)}")
+        if use_yesterday == "True":
+            today = datetime.now()
+            yesterday = today - timedelta(days=1)
+            formatted_yesterday = yesterday.strftime("%Y-%m-%d")
+            image_folder = os.path.join(image_folder, formatted_yesterday)
 
-if use_yesterday == "True":
-    today = datetime.now()
-    yesterday = today - timedelta(days=1)
-    formatted_yesterday = yesterday.strftime("%Y-%m-%d")
-    image_folder = os.path.join(image_folder, formatted_yesterday)
+        # Create a MySQL database and table if it doesn't exist
+        conn = connect_database(host, user, password, database_name, table_name)
 
-# Create a MySQL database and table if it doesn't exist
-conn = connect_database(host, user, password, database_name, table_name)
+        # Loop through the images in the folder
+        for root, dirs, files in os.walk(image_folder):
+            for filename in files:
+                if filename.endswith('.png'):
+                    image_path = os.path.join(root, filename)
+                    metadata = get_image_metadata(image_path, logger)
+                    parameters_metadata = metadata.get("parameters", "")
+                    extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path, nsfw, logger)
 
-# Loop through the images in the folder
-for root, dirs, files in os.walk(image_folder):
-    for filename in files:
-        if filename.endswith('.png'):
-            image_path = os.path.join(root, filename)
-            metadata = get_image_metadata(image_path)
-            parameters_metadata = metadata.get("parameters", "")
-            extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path, nsfw)
+                    if extracted_metadata is not None:
+                        insert_metadata_into_database(conn, table_name, extracted_metadata, logger)
 
-            if extracted_metadata is not None:
-                insert_metadata_into_database(conn, table_name, extracted_metadata)
+        # Close the database connection
+        conn.close()
+        logger.info("Script finished.")
+    except Exception as e:
+        logger.error("An unexpected error occurred: %s", str(e))
 
-# Close the database connection
-conn.close()
+if __name__ == "__main__":
+    start_metadata_extractor()
