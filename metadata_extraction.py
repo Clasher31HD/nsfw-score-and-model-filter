@@ -264,6 +264,8 @@ def start_metadata_extractor():
             image_folder = Path(config["image_folder"])
             use_yesterday = config.get("use_yesterday", False)
             nsfw = config.get("nsfw_probability", True)
+
+            logger.info(f"Host: {host}, User: {user}, Password: {password}, Database: {database_name}, Table: {table_name}, Image Folder: {image_folder}, Use Yesterday: {use_yesterday}, NSFW: {nsfw}")
         except (KeyError, ValueError) as e:
             raise ValueError(f"Invalid configuration: {str(e)}")
 
