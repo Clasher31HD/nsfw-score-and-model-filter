@@ -19,32 +19,40 @@ def read_configuration():
     
 
 def setup_logger():
+    # General Settings
     config = read_configuration()
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     level = config["level"]
     logs_directory = config["logs_directory"]
-    log_file = os.path.join(logs_directory, "Extraction.log")
-    extraction_log_file = os.path.join(logs_directory, "Info.log")
 
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setFormatter(formatter)
-
-    extraction_file_handler = logging.FileHandler(extraction_log_file)
-    extraction_file_handler.setFormatter(formatter)
-
-    file_handler.setLevel(level)
-    extraction_file_handler.setLevel(level)
-
+    # Standard Logger
+    logger_log_file = os.path.join(logs_directory, "Info.log")
+    logger_file_handler = logging.FileHandler(logger_log_file)
+    logger_file_handler.setFormatter(formatter)
+    logger_file_handler.setLevel(level)
     logger = logging.getLogger(__name__)
     logger.setLevel(level)
-    logger.addHandler(file_handler)
+    logger.addHandler(logger_file_handler)
 
-    extraction_logger = logging.getLogger('download')
+    # Extraction Logger
+    extraction_log_file = os.path.join(logs_directory, "Extraction.log")
+    extraction_file_handler = logging.FileHandler(extraction_log_file)
+    extraction_file_handler.setFormatter(formatter)
+    extraction_file_handler.setLevel(level)
+    extraction_logger = logging.getLogger('extraction')
     extraction_logger.setLevel(level)
     extraction_logger.addHandler(extraction_file_handler)
 
-    return logger, extraction_logger
+    # NSFW Logger 
+    nsfw_log_file = os.path.join(logs_directory, "NSFW.log")
+    nsfw_file_handler = logging.FileHandler(nsfw_log_file)
+    nsfw_file_handler.setFormatter(formatter)
+    nsfw_file_handler.setLevel(level)
+    nsfw_logger = logging.getLogger('nsfw')
+    nsfw_logger.setLevel(level)
+    nsfw_logger.addHandler(nsfw_file_handler)
+
+    return logger, extraction_logger, nsfw_logger
 
 
 # Function to extract metadata categories and subcategories
@@ -58,7 +66,7 @@ def get_image_metadata(image_path, logger):
         return {}
 
 
-def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger):
+def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw_logger):
     metadata_dict = {}
 
     if nsfw == "True":
@@ -68,15 +76,15 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger):
             img.thumbnail((512, 512))
 
             nsfw_probability = n2.predict_image(image_path)
-            logger.info(f"NSFWProbability is {nsfw_probability}")
+            nsfw_logger.info(f"NSFWProbability is {nsfw_probability}")
 
             metadata_dict["NSFWProbability"] = nsfw_probability
         except OSError as e:
-            logger.warning(f"Skipping image '{image_path.name}' due to an error: {str(e)}")
+            nsfw_logger.warning(f"Skipping image '{image_path.name}' due to an error: {str(e)}")
     else:
         nsfw_probability = "Unknown"
         metadata_dict["NSFWProbability"] = nsfw_probability
-        logger.info(f"NSFW is off so no nsfw calculation")
+        nsfw_logger.info("NSFW is off so no nsfw calculation")
 
     hashermd5 = hashlib.md5()
     hashersha1 = hashlib.sha1()
@@ -242,7 +250,7 @@ def insert_metadata_into_database(conn, table, metadata, logger):
 
 
 def start_metadata_extractor():
-    logger, extraction_logger = setup_logger()
+    logger, extraction_logger, nsfw_logger = setup_logger()
     try:
         try:
             logger.info("Script started.")
@@ -275,7 +283,7 @@ def start_metadata_extractor():
                     image_path = os.path.join(root, filename)
                     metadata = get_image_metadata(image_path, logger)
                     parameters_metadata = metadata.get("parameters", "")
-                    extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path, nsfw, logger)
+                    extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path, nsfw, logger, nsfw_logger)
 
                     if extracted_metadata is not None:
                         insert_metadata_into_database(conn, table_name, extracted_metadata, logger)
