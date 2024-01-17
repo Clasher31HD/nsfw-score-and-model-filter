@@ -298,6 +298,7 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, extra
             SHA256 = %s
         WHERE SHA256 = %s
         '''
+        # This can be replaced with: cursor.execute(update_query, tuple(existing_record + [existing_record[existing_columns.index('SHA256')]]))
         cursor.execute(update_query, (
             existing_record[existing_columns.index('FileName')],
             existing_record[existing_columns.index('Directory')],
@@ -358,6 +359,7 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, extra
 
 
 def start_metadata_extractor():
+    start_time = datetime.now()
     logger, extraction_logger, nsfw_logger = setup_logger()
     try:
         try:
@@ -400,7 +402,9 @@ def start_metadata_extractor():
 
         # Close the database connection
         conn.close()
-        logger.info("Script finished.")
+        end_time = datetime.now()
+        time_difference = str(end_time - start_time)
+        logger.info(f"Script finished. Duration: {time_difference}")
     except Exception as e:
         logger.error("An unexpected error occurred: %s", str(e))
 
