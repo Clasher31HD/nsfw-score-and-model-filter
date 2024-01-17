@@ -24,9 +24,22 @@ def setup_logger():
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     level = config["level"]
     logs_directory = config["logs_directory"]
+    log_by_day = config["log_by_day"]
+    if log_by_day:
+        year = str(datetime.now().strftime('%Y'))
+        month = str(datetime.now().strftime('%m'))
+        day = str(datetime.now().strftime('%d'))
+        directory_path = os.path.join(logs_directory, year, month)
+        os.makedirs(directory_path, exist_ok=True)
+        logger_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-Info.log")
+        extraction_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-Extraction.log")
+        nsfw_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-NSFW.log")
+    else:
+        logger_log_file = os.path.join(logs_directory, "Info.log")
+        extraction_log_file = os.path.join(logs_directory, "Extraction.log")
+        nsfw_log_file = os.path.join(logs_directory, "NSFW.log")
 
     # Standard Logger
-    logger_log_file = os.path.join(logs_directory, "Info.log")
     logger_file_handler = logging.FileHandler(logger_log_file)
     logger_file_handler.setFormatter(formatter)
     logger_file_handler.setLevel(level)
@@ -35,7 +48,6 @@ def setup_logger():
     logger.addHandler(logger_file_handler)
 
     # Extraction Logger
-    extraction_log_file = os.path.join(logs_directory, "Extraction.log")
     extraction_file_handler = logging.FileHandler(extraction_log_file)
     extraction_file_handler.setFormatter(formatter)
     extraction_file_handler.setLevel(level)
@@ -44,7 +56,6 @@ def setup_logger():
     extraction_logger.addHandler(extraction_file_handler)
 
     # NSFW Logger 
-    nsfw_log_file = os.path.join(logs_directory, "NSFW.log")
     nsfw_file_handler = logging.FileHandler(nsfw_log_file)
     nsfw_file_handler.setFormatter(formatter)
     nsfw_file_handler.setLevel(level)
