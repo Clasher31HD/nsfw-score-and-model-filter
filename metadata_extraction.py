@@ -177,7 +177,7 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw
 
 
 # Function to create a MySQL database and table
-def connect_database(host, user, password, database_name, table_name):
+def connect_database(host, user, password, database_name, table_name, logger):
     conn = mysql.connector.connect(
         host=host,
         user=user,
@@ -219,10 +219,11 @@ def connect_database(host, user, password, database_name, table_name):
         '''
         cursor.execute(create_table_query)
         conn.commit()
+        logger.info(f"Table {table_name} created successfully.")
     else:
         # Check and add columns if they do not exist
         expected_columns = [
-            'CreatedAt', 'PositivePrompt', 'NegativePrompt', 'Steps',
+            'FileName', 'Directory', 'FileSize', 'CreatedAt', 'PositivePrompt', 'NegativePrompt', 'Steps',
             'Sampler', 'CFGScale', 'Seed', 'ImageSize', 'ModelHash',
             'Model', 'SeedResizeFrom', 'DenoisingStrength', 'Version',
             'NSFWProbability', 'MD5', 'SHA1', 'SHA256'
@@ -237,6 +238,7 @@ def connect_database(host, user, password, database_name, table_name):
                 add_column_query = f"ALTER TABLE {table_name} ADD COLUMN {column} TEXT"
                 cursor.execute(add_column_query)
                 conn.commit()
+                logger.info(f"Column {column} added successfully.")
 
     return conn
 
