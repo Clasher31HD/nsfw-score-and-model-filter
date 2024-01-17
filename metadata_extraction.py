@@ -185,33 +185,59 @@ def connect_database(host, user, password, database_name, table_name):
         database=database_name
     )
     cursor = conn.cursor()
-    create_table_query = f'''
-        CREATE TABLE IF NOT EXISTS {table_name} (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            FileName VARCHAR(255),
-            Directory TEXT,
-            FileSize TEXT,
-            CreatedAt TEXT,
-            PositivePrompt TEXT,
-            NegativePrompt TEXT,
-            Steps TEXT,
-            Sampler TEXT,
-            CFGScale TEXT,
-            Seed TEXT,
-            ImageSize TEXT,
-            ModelHash TEXT,
-            Model TEXT,
-            SeedResizeFrom TEXT,
-            DenoisingStrength TEXT,
-            Version TEXT,
-            NSFWProbability TEXT,
-            MD5 TEXT,
-            SHA1 TEXT,
-            SHA256 TEXT
-        )
-    '''
-    cursor.execute(create_table_query)
-    conn.commit()
+
+    # Check if the table exists
+    cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
+    table_exists = cursor.fetchone()
+
+    if not table_exists:
+        # Create the table if it doesn't exist
+        create_table_query = f'''
+            CREATE TABLE {table_name} (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                FileName VARCHAR(255),
+                Directory TEXT,
+                FileSize TEXT,
+                CreatedAt TEXT,
+                PositivePrompt TEXT,
+                NegativePrompt TEXT,
+                Steps TEXT,
+                Sampler TEXT,
+                CFGScale TEXT,
+                Seed TEXT,
+                ImageSize TEXT,
+                ModelHash TEXT,
+                Model TEXT,
+                SeedResizeFrom TEXT,
+                DenoisingStrength TEXT,
+                Version TEXT,
+                NSFWProbability TEXT,
+                MD5 TEXT,
+                SHA1 TEXT,
+                SHA256 TEXT
+            )
+        '''
+        cursor.execute(create_table_query)
+        conn.commit()
+    else:
+        # Check and add columns if they do not exist
+        expected_columns = [
+            'CreatedAt', 'PositivePrompt', 'NegativePrompt', 'Steps',
+            'Sampler', 'CFGScale', 'Seed', 'ImageSize', 'ModelHash',
+            'Model', 'SeedResizeFrom', 'DenoisingStrength', 'Version',
+            'NSFWProbability', 'MD5', 'SHA1', 'SHA256'
+        ]
+
+        cursor.execute(f"DESCRIBE {table_name}")
+        existing_columns = [column[0] for column in cursor.fetchall()]
+
+        for column in expected_columns:
+            if column not in existing_columns:
+                # Add the column if it does not exist
+                add_column_query = f"ALTER TABLE {table_name} ADD COLUMN {column} TEXT"
+                cursor.execute(add_column_query)
+                conn.commit()
+
     return conn
 
 
