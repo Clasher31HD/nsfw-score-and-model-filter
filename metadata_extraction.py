@@ -253,7 +253,7 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, extra
     WHERE SHA256 = %s
     '''
     cursor.execute(query, (metadata.get('SHA256', ''),))
-    existing_record = cursor.fetchone()
+    existing_record = list(cursor.fetchone())
 
     if existing_record:
         # Iterate through metadata fields and update the database record if necessary
