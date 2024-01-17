@@ -374,7 +374,7 @@ def start_metadata_extractor():
             image_folder = os.path.join(image_folder, formatted_yesterday)
 
         # Create a MySQL database and table if it doesn't exist
-        conn = connect_database(host, user, password, database_name, table_name)
+        conn = connect_database(host, user, password, database_name, table_name, logger)
 
         # Loop through the images in the folder
         for root, dirs, files in os.walk(image_folder):
