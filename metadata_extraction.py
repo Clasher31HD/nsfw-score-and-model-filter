@@ -71,7 +71,11 @@ def get_image_metadata(image_path, logger):
     try:
         with Image.open(image_path) as img:
             metadata = img.info
-        return metadata
+        if metadata:
+            return metadata
+        else:
+            logger.error(f"Metadata from file {image_path} is not available")
+            return {}
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")
         return {}
