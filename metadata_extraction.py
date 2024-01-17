@@ -24,7 +24,7 @@ def setup_logger():
     formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     level = config["level"]
     logs_directory = config["logs_directory"]
-    log_by_day = config["log_by_day"]
+    log_by_day = config.get("log_by_day", True)
     if log_by_day:
         year = str(datetime.now().strftime('%Y'))
         month = str(datetime.now().strftime('%m'))
