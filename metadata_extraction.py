@@ -122,9 +122,11 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw
     file_name = os.path.basename(image_path).strip(".png")
     directory = os.path.basename(os.path.dirname(image_path))
     file_size = os.path.getsize(image_path)
+    creation_time = datetime.fromtimestamp(os.path.getctime(image_path))
     metadata_dict["File Name"] = file_name
     metadata_dict["Directory"] = directory
     metadata_dict["File Size"] = file_size
+    metadata_dict["Created At"] = creation_time
 
     # Split by the first occurrence of "Negative prompt" or "Steps"
     negative_prompt_index = metadata_str.find("Negative prompt:")
@@ -189,6 +191,7 @@ def connect_database(host, user, password, database_name, table_name):
             FileName VARCHAR(255),
             Directory TEXT,
             FileSize TEXT,
+            CreatedAt TEXT,
             PositivePrompt TEXT,
             NegativePrompt TEXT,
             Steps TEXT,
@@ -216,26 +219,85 @@ def connect_database(host, user, password, database_name, table_name):
 def insert_metadata_into_database(conn, table, metadata, logger):
     cursor = conn.cursor()
 
-    # Check if the combination of FileName and Directory already exists in the database
+    # Check if the data already exists in the database
     query = f'''
-    SELECT COUNT(*) FROM {table}
+    SELECT * FROM {table}
     WHERE SHA256 = %s
     '''
     cursor.execute(query, (metadata.get('SHA256', ''),))
-    result = cursor.fetchone()
+    existing_record = cursor.fetchone()
 
-    if result[0] == 0:
+    if existing_record:
+        # Iterate through metadata fields and update the database record if necessary
+        for field_name, value in metadata.items():
+            # Check if the field is missing or contains "Unknown"
+            if existing_record[field_name] is None or existing_record[field_name] == 'Unknown':
+                existing_record[field_name] = value
+
+        # Update the database record
+        update_query = f'''
+        UPDATE {table}
+        SET
+            FileName = %s,
+            Directory = %s,
+            FileSize = %s,
+            CreatedAt = %s,
+            PositivePrompt = %s,
+            NegativePrompt = %s,
+            Steps = %s,
+            Sampler = %s,
+            CFGScale = %s,
+            Seed = %s,
+            ImageSize = %s,
+            ModelHash = %s,
+            Model = %s,
+            SeedResizeFrom = %s,
+            DenoisingStrength = %s,
+            Version = %s,
+            NSFWProbability = %s,
+            MD5 = %s,
+            SHA1 = %s,
+            SHA256 = %s
+        WHERE SHA256 = %s
+        '''
+        cursor.execute(update_query, (
+            existing_record['FileName'],
+            existing_record['Directory'],
+            existing_record['FileSize'],
+            existing_record['CreatedAt'],
+            existing_record['PositivePrompt'],
+            existing_record['NegativePrompt'],
+            existing_record['Steps'],
+            existing_record['Sampler'],
+            existing_record['CFGScale'],
+            existing_record['Seed'],
+            existing_record['ImageSize'],
+            existing_record['ModelHash'],
+            existing_record['Model'],
+            existing_record['SeedResizeFrom'],
+            existing_record['DenoisingStrength'],
+            existing_record['Version'],
+            existing_record['NSFWProbability'],
+            existing_record['MD5'],
+            existing_record['SHA1'],
+            existing_record['SHA256'],
+            existing_record['SHA256']  # Use SHA256 as a condition for the WHERE clause
+        ))
+        conn.commit()
+        logger.info(f"Metadata for SHA256 {metadata.get('SHA256', '')} updated in the database.")
+    else:
         # The combination doesn't exist, so insert the metadata
         cursor.execute(f'''
-            INSERT INTO {table} (
-                FileName, Directory, FileSize, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
-                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFWProbability, MD5, SHA1, SHA256
-            )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO {table} (
+            FileName, Directory, FileSize, CreatedAt, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
+            ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFWProbability, MD5, SHA1, SHA256
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             metadata.get('File Name', ''),
             metadata.get('Directory', ''),
             metadata.get('File Size', ''),
+            metadata.get('Created at', ''),
             metadata.get('Positive prompt', ''),
             metadata.get('Negative prompt', ''),
             metadata.get('Steps', ''),
@@ -255,9 +317,6 @@ def insert_metadata_into_database(conn, table, metadata, logger):
         ))
         conn.commit()
         logger.info(f"Metadata from {metadata.get('File Name', '')} extracted and added to the database.")
-    else:
-        # The combination already exists, so skip the insert
-        logger.warning(f"Metadata from {metadata.get('File Name', '')} already exists in the database. Skipping insert.")
 
 
 def start_metadata_extractor():
