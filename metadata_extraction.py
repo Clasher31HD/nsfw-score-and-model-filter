@@ -240,11 +240,11 @@ def connect_database(host, user, password, database_name, table_name, logger):
                 conn.commit()
                 logger.info(f"Column {column} added successfully.")
 
-    return conn
+    return conn, existing_columns
 
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
-def insert_metadata_into_database(conn, table, metadata, extraction_logger):
+def insert_metadata_into_database(conn, table, existing_columns, metadata, extraction_logger):
     cursor = conn.cursor()
 
     # Check if the data already exists in the database
@@ -259,8 +259,10 @@ def insert_metadata_into_database(conn, table, metadata, extraction_logger):
         # Iterate through metadata fields and update the database record if necessary
         for field_name, value in metadata.items():
             # Check if the field is missing or contains "Unknown"
-            if existing_record[field_name] is None or existing_record[field_name] == 'Unknown':
-                existing_record[field_name] = value
+            if field_name in existing_columns:
+                # Get the index of the field and update the value
+                field_index = existing_columns.index(field_name)
+                existing_record[field_index] = value
 
         # Update the database record
         update_query = f'''
@@ -289,27 +291,27 @@ def insert_metadata_into_database(conn, table, metadata, extraction_logger):
         WHERE SHA256 = %s
         '''
         cursor.execute(update_query, (
-            existing_record['FileName'],
-            existing_record['Directory'],
-            existing_record['FileSize'],
-            existing_record['CreatedAt'],
-            existing_record['PositivePrompt'],
-            existing_record['NegativePrompt'],
-            existing_record['Steps'],
-            existing_record['Sampler'],
-            existing_record['CFGScale'],
-            existing_record['Seed'],
-            existing_record['ImageSize'],
-            existing_record['ModelHash'],
-            existing_record['Model'],
-            existing_record['SeedResizeFrom'],
-            existing_record['DenoisingStrength'],
-            existing_record['Version'],
-            existing_record['NSFWProbability'],
-            existing_record['MD5'],
-            existing_record['SHA1'],
-            existing_record['SHA256'],
-            existing_record['SHA256']  # Use SHA256 as a condition for the WHERE clause
+            existing_record[existing_columns.index('FileName')],
+            existing_record[existing_columns.index('Directory')],
+            existing_record[existing_columns.index('FileSize')],
+            existing_record[existing_columns.index('CreatedAt')],
+            existing_record[existing_columns.index('PositivePrompt')],
+            existing_record[existing_columns.index('NegativePrompt')],
+            existing_record[existing_columns.index('Steps')],
+            existing_record[existing_columns.index('Sampler')],
+            existing_record[existing_columns.index('CFGScale')],
+            existing_record[existing_columns.index('Seed')],
+            existing_record[existing_columns.index('ImageSize')],
+            existing_record[existing_columns.index('ModelHash')],
+            existing_record[existing_columns.index('Model')],
+            existing_record[existing_columns.index('SeedResizeFrom')],
+            existing_record[existing_columns.index('DenoisingStrength')],
+            existing_record[existing_columns.index('Version')],
+            existing_record[existing_columns.index('NSFWProbability')],
+            existing_record[existing_columns.index('MD5')],
+            existing_record[existing_columns.index('SHA1')],
+            existing_record[existing_columns.index('SHA256')],
+            existing_record[existing_columns.index('SHA256')]  # Use SHA256 as a condition for the WHERE clause
         ))
         conn.commit()
         extraction_logger.info(f"Metadata for SHA256 {metadata.get('SHA256', '')} in folder {metadata.get('Directory', '')} has been updated in the database.")
@@ -374,7 +376,7 @@ def start_metadata_extractor():
             image_folder = os.path.join(image_folder, formatted_yesterday)
 
         # Create a MySQL database and table if it doesn't exist
-        conn = connect_database(host, user, password, database_name, table_name, logger)
+        conn, existing_columns = connect_database(host, user, password, database_name, table_name, logger)
 
         # Loop through the images in the folder
         for root, dirs, files in os.walk(image_folder):
@@ -386,7 +388,7 @@ def start_metadata_extractor():
                     extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path, nsfw, logger, nsfw_logger)
 
                     if extracted_metadata is not None:
-                        insert_metadata_into_database(conn, table_name, extracted_metadata, extraction_logger)
+                        insert_metadata_into_database(conn, table_name, existing_columns, extracted_metadata, extraction_logger)
 
         # Close the database connection
         conn.close()
