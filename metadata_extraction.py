@@ -87,11 +87,11 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw
             img.thumbnail((512, 512))
 
             nsfw_probability = n2.predict_image(image_path)
-            nsfw_logger.info(f"NSFWProbability for image '{image_path.name}' is {nsfw_probability}")
+            nsfw_logger.info(f"NSFWProbability for image '{os.path.basename(image_path)}' is {nsfw_probability}")
 
             metadata_dict["NSFWProbability"] = nsfw_probability
         except OSError as e:
-            nsfw_logger.warning(f"Skipping image '{image_path.name}' due to an error: {str(e)}")
+            nsfw_logger.warning(f"Skipping image '{os.path.basename(image_path)}' due to an error: {str(e)}")
     else:
         nsfw_probability = "Unknown"
         metadata_dict["NSFWProbability"] = nsfw_probability
