@@ -314,7 +314,7 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, extra
             existing_record[existing_columns.index('SHA256')]  # Use SHA256 as a condition for the WHERE clause
         ))
         conn.commit()
-        extraction_logger.info(f"Metadata for SHA256 {metadata.get('SHA256', '')} in folder {metadata.get('Directory', '')} has been updated in the database.")
+        extraction_logger.info(f"Metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} has been updated in the database.")
     else:
         # The combination doesn't exist, so insert the metadata
         cursor.execute(f'''
