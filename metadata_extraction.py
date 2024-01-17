@@ -364,7 +364,6 @@ def start_metadata_extractor():
     try:
         try:
             logger.info("Script started.")
-            
             config = read_configuration()
             host = config["host"]
             user = config["user"]
@@ -398,6 +397,7 @@ def start_metadata_extractor():
                     extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path, nsfw, logger, nsfw_logger)
 
                     if extracted_metadata is not None:
+                        extraction_logger.info(f"Extracted metadata from {image_path} is {extracted_metadata}")
                         insert_metadata_into_database(conn, table_name, existing_columns, extracted_metadata, extraction_logger)
 
         # Close the database connection
