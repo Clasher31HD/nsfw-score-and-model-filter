@@ -262,11 +262,15 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, extra
     if existing_record:
         # Iterate through metadata fields and update the database record if necessary
         for field_name, value in metadata.items():
-            # Check if the field is missing or contains "Unknown"
+            # Check if the field is in the existing columns
             if field_name in existing_columns:
-                # Get the index of the field and update the value
+                # Get the index of the field
                 field_index = existing_columns.index(field_name)
-                existing_record[field_index] = value
+                
+                # Check if the values are different
+                if existing_record[field_index] != value:
+                    # Update the value in the existing record
+                    existing_record[field_index] = value
 
         # Update the database record
         update_query = f'''
