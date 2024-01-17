@@ -244,7 +244,7 @@ def connect_database(host, user, password, database_name, table_name, logger):
 
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
-def insert_metadata_into_database(conn, table, metadata, logger):
+def insert_metadata_into_database(conn, table, metadata, extraction_logger):
     cursor = conn.cursor()
 
     # Check if the data already exists in the database
@@ -312,7 +312,7 @@ def insert_metadata_into_database(conn, table, metadata, logger):
             existing_record['SHA256']  # Use SHA256 as a condition for the WHERE clause
         ))
         conn.commit()
-        logger.info(f"Metadata for SHA256 {metadata.get('SHA256', '')} updated in the database.")
+        extraction_logger.info(f"Metadata for SHA256 {metadata.get('SHA256', '')} in folder {metadata.get('Directory', '')} has been updated in the database.")
     else:
         # The combination doesn't exist, so insert the metadata
         cursor.execute(f'''
@@ -344,7 +344,7 @@ def insert_metadata_into_database(conn, table, metadata, logger):
             metadata.get('SHA256', '')
         ))
         conn.commit()
-        logger.info(f"Metadata from {metadata.get('File Name', '')} extracted and added to the database.")
+        extraction_logger.info(f"Metadata from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} extracted and added to the database.")
 
 
 def start_metadata_extractor():
@@ -386,7 +386,7 @@ def start_metadata_extractor():
                     extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path, nsfw, logger, nsfw_logger)
 
                     if extracted_metadata is not None:
-                        insert_metadata_into_database(conn, table_name, extracted_metadata, logger)
+                        insert_metadata_into_database(conn, table_name, extracted_metadata, extraction_logger)
 
         # Close the database connection
         conn.close()
