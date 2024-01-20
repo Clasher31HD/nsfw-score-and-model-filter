@@ -29,7 +29,7 @@ def setup_logger():
         year = str(datetime.now().strftime('%Y'))
         month = str(datetime.now().strftime('%m'))
         day = str(datetime.now().strftime('%d'))
-        directory_path = os.path.join(logs_directory, year, month)
+        directory_path = os.path.join(logs_directory, year, month, day)
         os.makedirs(directory_path, exist_ok=True)
         logger_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-Info.log")
         extraction_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-Extraction.log")
