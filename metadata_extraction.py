@@ -324,18 +324,7 @@ def insert_metadata_into_database(
         logger.error(f"No existing record found for {table}.")
         return
 
-    if existing_record:
-        update_metadata_in_database(
-            conn,
-            cursor,
-            metadata,
-            table,
-            existing_columns,
-            existing_record,
-            logger,
-            extraction_logger,
-        )
-    else:
+    if not existing_record:
         # The combination doesn't exist, so insert the metadata
         try:
             cursor.execute(
@@ -378,6 +367,17 @@ def insert_metadata_into_database(
         extraction_logger.info(
             f"Metadata from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} extracted and added to the database."
         )
+    else:
+        update_metadata_in_database(
+            conn,
+            cursor,
+            metadata,
+            table,
+            existing_columns,
+            existing_record,
+            logger,
+            extraction_logger,
+        )
 
 
 def update_metadata_in_database(
@@ -408,8 +408,6 @@ def update_metadata_in_database(
                 # Update the value in the existing record
                 existing_record[field_index] = value
                 logger.info(f"Updated {field_name} to {value} in existing record.")
-
-
 
     # Update the database record
     update_query = f"""
