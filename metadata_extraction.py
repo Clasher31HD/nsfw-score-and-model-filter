@@ -72,15 +72,16 @@ def setup_logger():
 def get_image_metadata(image_path, logger):
     try:
         with Image.open(image_path) as img:
-            metadata = img.info
-            return metadata
+            raw_metadata = img.info
+            if raw_metadata is not None:
+                metadata = raw_metadata.get("parameters", "")
+                if metadata is not None:
+                    return metadata
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")
 
 
-def extract_metadata_from_parameter(
-    metadata_str, image_path, nsfw, logger, nsfw_logger
-):
+def extract_metadata_from_parameter(metadata, image_path, nsfw, logger, nsfw_logger):
     metadata_dict = {}
 
     if nsfw:
@@ -140,14 +141,14 @@ def extract_metadata_from_parameter(
     metadata_dict["Created At"] = creation_time.strftime("%Y-%m-%d %H:%M:%S")
 
     # Split by the first occurrence of "Negative prompt" or "Steps"
-    negative_prompt_index = metadata_str.find("Negative prompt:")
-    steps_index = metadata_str.find("Steps:")
+    negative_prompt_index = metadata.find("Negative prompt:")
+    steps_index = metadata.find("Steps:")
 
     if negative_prompt_index != -1:
-        positive_prompt = metadata_str[:negative_prompt_index].strip()
+        positive_prompt = metadata[:negative_prompt_index].strip()
         metadata_dict["Positive prompt"] = positive_prompt
 
-        remaining_content = metadata_str[negative_prompt_index:].strip()
+        remaining_content = metadata[negative_prompt_index:].strip()
         negative_prompt_end = remaining_content.find("Steps:")
 
         if negative_prompt_end != -1:
@@ -158,7 +159,7 @@ def extract_metadata_from_parameter(
         else:
             metadata_dict["Negative prompt"] = remaining_content
 
-        steps_section = metadata_str[steps_index:].strip()
+        steps_section = metadata[steps_index:].strip()
         metadata_dict["Steps"] = steps_section
 
         # Split the content after "Steps:" into key-value pairs
@@ -169,10 +170,10 @@ def extract_metadata_from_parameter(
                 key, value = key_value[0], key_value[1]
                 metadata_dict[key] = value
     elif steps_index != -1:
-        positive_prompt = metadata_str[:steps_index].strip()
+        positive_prompt = metadata[:steps_index].strip()
         metadata_dict["Positive prompt"] = positive_prompt
 
-        steps_section = metadata_str[steps_index:].strip()
+        steps_section = metadata[steps_index:].strip()
         metadata_dict["Steps"] = steps_section
 
         # Split the content after "Steps:" into key-value pairs
@@ -184,9 +185,10 @@ def extract_metadata_from_parameter(
                 metadata_dict[key] = value
     else:
         # If neither "Negative prompt" nor "Steps" is found, consider the entire section as "Positive prompt"
-        metadata_dict["Positive prompt"] = metadata_str
+        metadata_dict["Positive prompt"] = metadata
 
-    return metadata_dict
+    if metadata_dict is not None:
+        return metadata_dict
 
 
 # Function to create a MySQL database and table
@@ -466,46 +468,42 @@ def start_metadata_extractor():
                 if filename.endswith(".png"):
                     image_path = os.path.join(root, filename)
                     metadata = get_image_metadata(image_path, logger)
-                    if metadata is not None:
-                        parameters_metadata = metadata.get("parameters", "")
-                        if parameters_metadata is not None:
-                            extracted_metadata = extract_metadata_from_parameter(
-                                parameters_metadata,
-                                image_path,
-                                nsfw,
-                                logger,
-                                nsfw_logger,
-                            )
+                    extracted_metadata = extract_metadata_from_parameter(
+                        metadata,
+                        image_path,
+                        nsfw,
+                        logger,
+                        nsfw_logger,
+                    )
 
-                            if extracted_metadata is not None:
-                                extraction_logger.info(
-                                    f"Extracted metadata from {image_path} is {extracted_metadata}"
-                                )
+                    extraction_logger.info(
+                        f"Extracted metadata from {image_path} is {extracted_metadata}"
+                    )
 
-                                # Check if metadata already exists in database
-                                exists = check_if_metadata_exists(
-                                    conn, metadata, table_name, logger
-                                )
+                    # Check if metadata already exists in database
+                    exists = check_if_metadata_exists(
+                        conn, extracted_metadata, table_name, logger
+                    )
 
-                                if exists:
-                                    # Update metadata in database
-                                    update_metadata_in_database(
-                                        conn,
-                                        metadata,
-                                        table_name,
-                                        logger,
-                                        extraction_logger,
-                                    )
-                                else:
-                                    # Insert metadata into database
-                                    insert_metadata_into_database(
-                                        conn,
-                                        table_name,
-                                        columns,
-                                        extracted_metadata,
-                                        logger,
-                                        extraction_logger,
-                                    )
+                    if exists:
+                        # Update metadata in database
+                        update_metadata_in_database(
+                            conn,   
+                            extracted_metadata,
+                            table_name,
+                            logger,
+                            extraction_logger,
+                        )
+                    else:
+                        # Insert metadata into database
+                        insert_metadata_into_database(
+                            conn,
+                            table_name,
+                            columns,
+                            extracted_metadata,
+                            logger,
+                            extraction_logger,
+                        )
 
         # Close the database connection
         conn.close()
