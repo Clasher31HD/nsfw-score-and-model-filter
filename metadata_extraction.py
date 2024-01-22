@@ -212,13 +212,13 @@ def connect_database(host, user, password, database_name, table_name, logger):
     # Check if the table exists
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
 
-    existing_columns = update_database_table_and_columns(
+    existing_columns = update_database_table(
         conn, cursor, table_name, logger
     )
     return conn, existing_columns
 
 
-def update_database_table_and_columns(conn, cursor, table_name, logger):
+def update_database_table(conn, cursor, table_name, logger):
     table_exists = cursor.fetchone()
     if not table_exists:
         # Create the table if it doesn't exist
@@ -257,43 +257,48 @@ def update_database_table_and_columns(conn, cursor, table_name, logger):
 
         logger.info(f"Table {table_name} created successfully.")
     else:
-        # Check and add columns if they do not exist
-        expected_columns = [
-            "FileName",
-            "Directory",
-            "FileSize",
-            "CreatedAt",
-            "PositivePrompt",
-            "NegativePrompt",
-            "Steps",
-            "Sampler",
-            "CFGScale",
-            "Seed",
-            "ImageSize",
-            "ModelHash",
-            "Model",
-            "SeedResizeFrom",
-            "DenoisingStrength",
-            "Version",
-            "NSFWProbability",
-            "MD5",
-            "SHA1",
-            "SHA256",
-        ]
+        existing_columns = update_database_columns(conn, cursor, table_name, logger)
+        return existing_columns
 
-        cursor.execute(f"DESCRIBE {table_name}")
-        existing_columns = [column[0] for column in cursor.fetchall()]
 
-        for column in expected_columns:
-            if column not in existing_columns:
-                # Add the column if it does not exist
-                add_column_query = f"ALTER TABLE {table_name} ADD COLUMN {column} TEXT"
-                try:
-                    cursor.execute(add_column_query)
-                    conn.commit()
-                    logger.info(f"Column {column} added successfully.")
-                except mysql.connector.Error as e:
-                    logger.error(f"Error adding column {column}: {e}")
+def update_database_columns(conn, cursor, table_name, logger):
+    # Check and add columns if they do not exist
+    expected_columns = [
+        "FileName",
+        "Directory",
+        "FileSize",
+        "CreatedAt",
+        "PositivePrompt",
+        "NegativePrompt",
+        "Steps",
+        "Sampler",
+        "CFGScale",
+        "Seed",
+        "ImageSize",
+        "ModelHash",
+        "Model",
+        "SeedResizeFrom",
+        "DenoisingStrength",
+        "Version",
+        "NSFWProbability",
+        "MD5",
+        "SHA1",
+        "SHA256",
+    ]
+
+    cursor.execute(f"DESCRIBE {table_name}")
+    existing_columns = [column[0] for column in cursor.fetchall()]
+
+    for column in expected_columns:
+        if column not in existing_columns:
+            # Add the column if it does not exist
+            add_column_query = f"ALTER TABLE {table_name} ADD COLUMN {column} TEXT"
+            try:
+                cursor.execute(add_column_query)
+                conn.commit()
+                logger.info(f"Column {column} added successfully.")
+            except mysql.connector.Error as e:
+                logger.error(f"Error adding column {column}: {e}")
 
     return existing_columns
 
