@@ -298,10 +298,6 @@ def update_database_columns(conn, table_name, logger):
 def check_if_metadata_exists(conn, metadata, table_name, logger):
     cursor = conn.cursor()
 
-    if metadata is None:
-        logger.error(f"No metadata found for {table_name}.")
-        return
-
     # Check if the data already exists in the database
     query = f"""
     SELECT * FROM {table_name}
