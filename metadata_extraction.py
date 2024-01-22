@@ -393,6 +393,12 @@ def update_metadata_in_database(
     # Iterate through metadata fields and update the database record if necessary
     for field_name, value in metadata.items():
         # Check if the field is in the existing columns
+        if "SHA256" in existing_columns:
+            sha256_index = existing_columns.index("SHA256")
+            # Ensure the index is valid before accessing it
+            if sha256_index < len(existing_record):
+                existing_record[sha256_index] = metadata.get("SHA256", "")
+
         if field_name in existing_columns:
             # Get the index of the field
             field_index = existing_columns.index(field_name)
@@ -403,11 +409,7 @@ def update_metadata_in_database(
                 existing_record[field_index] = value
                 logger.info(f"Updated {field_name} to {value} in existing record.")
 
-    if "SHA256" in existing_columns:
-        sha256_index = existing_columns.index("SHA256")
-        # Ensure the index is valid before accessing it
-        if sha256_index < len(existing_record):
-            existing_record[sha256_index] = metadata.get("SHA256", "")
+
 
     # Update the database record
     update_query = f"""
