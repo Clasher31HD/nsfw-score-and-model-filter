@@ -282,7 +282,7 @@ def check_if_metadata_exists(conn, metadata, table_name, logger):
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
 def insert_metadata_into_database(
-    conn, table_name, metadata, logger, extraction_logger
+    conn, metadata, table_name, logger, extraction_logger
 ):
     cursor = conn.cursor()
     try:
@@ -488,7 +488,7 @@ def start_metadata_extractor():
                     if exists:
                         # Update metadata in database
                         update_metadata_in_database(
-                            conn,   
+                            conn,
                             extracted_metadata,
                             table_name,
                             logger,
@@ -498,8 +498,8 @@ def start_metadata_extractor():
                         # Insert metadata into database
                         insert_metadata_into_database(
                             conn,
-                            table_name,
                             extracted_metadata,
+                            table_name,
                             logger,
                             extraction_logger,
                         )
