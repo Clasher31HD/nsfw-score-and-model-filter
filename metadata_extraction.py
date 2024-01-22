@@ -368,7 +368,7 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, logge
             ))
             conn.commit()
         except:
-            logger.error(f"Error while extracting metadata from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')}.")
+            logger.error(f"Error while inserting metadata into database from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')}.")
         
         extraction_logger.info(f"Metadata from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} extracted and added to the database.")
 
