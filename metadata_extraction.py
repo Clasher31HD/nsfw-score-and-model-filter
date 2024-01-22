@@ -41,7 +41,7 @@ def setup_logger():
         logger_log_file = os.path.join(logs_directory, "Info.log")
         extraction_log_file = os.path.join(logs_directory, "Extraction.log")
         nsfw_log_file = os.path.join(logs_directory, "NSFW.log")
-        debuglog_file = os.path.join(logs_directory, "Debug.log")
+        debug_log_file = os.path.join(logs_directory, "Debug.log")
 
     # Standard Logger
     logger_file_handler = logging.FileHandler(logger_log_file)
