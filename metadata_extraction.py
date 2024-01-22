@@ -71,17 +71,25 @@ def get_image_metadata(image_path, logger):
     try:
         with Image.open(image_path) as img:
             metadata = img.info
-        if metadata:
-            return metadata
-        else:
-            logger.error(f"Metadata from file {image_path} is not available")
-            return {}
+            if metadata:
+                if metadata is not None:
+                    return metadata
+                else:
+                    logger.error(f"Metadata from file {image_path} is not available")
+                    return {}
+            else:
+                logger.error(f"Metadata from file {image_path} is not available")
+                return {}
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")
         return {}
 
 
 def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw_logger):
+    if metadata_str is None:
+        logger.error("metadata_str is None.")
+        return {}
+    
     metadata_dict = {}
 
     if nsfw:
@@ -91,8 +99,11 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw
             img.thumbnail((512, 512))
 
             nsfw_probability = n2.predict_image(image_path)
+            if nsfw_probability is None:
+                logger.error(f"An error occurred: {str(e)}")
+                return {}
+            
             nsfw_logger.info(f"NSFWProbability for image '{os.path.basename(image_path)}' is {nsfw_probability}")
-
             metadata_dict["NSFWProbability"] = nsfw_probability
         except OSError as e:
             nsfw_logger.warning(f"Skipping image '{os.path.basename(image_path)}' due to an error: {str(e)}")
@@ -182,13 +193,16 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw
 
 # Function to create a MySQL database and table
 def connect_database(host, user, password, database_name, table_name, logger):
-    conn = mysql.connector.connect(
-        host=host,
-        user=user,
-        password=password,
-        database=database_name
-    )
-    cursor = conn.cursor()
+    try:
+        conn = mysql.connector.connect(
+            host=host,
+            user=user,
+            password=password,
+            database=database_name
+        )
+        cursor = conn.cursor()
+    except:
+        logger.error("Failed to connect to the database")
 
     # Check if the table exists
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
@@ -221,8 +235,13 @@ def connect_database(host, user, password, database_name, table_name, logger):
                 SHA256 TEXT
             )
         '''
-        cursor.execute(create_table_query)
-        conn.commit()
+
+        try:
+            cursor.execute(create_table_query)
+            conn.commit()
+        except:
+            logger.error(f"Table creation could not be executed.")
+    
         logger.info(f"Table {table_name} created successfully.")
     else:
         # Check and add columns if they do not exist
@@ -248,9 +267,13 @@ def connect_database(host, user, password, database_name, table_name, logger):
 
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
-def insert_metadata_into_database(conn, table, existing_columns, metadata, extraction_logger):
+def insert_metadata_into_database(conn, table, existing_columns, metadata, logger, extraction_logger):
     cursor = conn.cursor()
 
+    if metadata is None:
+        logger.error(f"No metadata found for {table}.")
+        return 
+    
     # Check if the data already exists in the database
     query = f'''
     SELECT * FROM {table}
@@ -258,6 +281,10 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, extra
     '''
     cursor.execute(query, (metadata.get('SHA256', ''),))
     existing_record = list(cursor.fetchone())
+
+    if existing_record is None:
+        logger.error(f"No existing record found for {table}.")
+        return
 
     if existing_record:
         # Iterate through metadata fields and update the database record if necessary
@@ -298,63 +325,51 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, extra
             SHA256 = %s
         WHERE SHA256 = %s
         '''
-        # This can be replaced with: cursor.execute(update_query, tuple(existing_record + [existing_record[existing_columns.index('SHA256')]]))
-        cursor.execute(update_query, (
-            existing_record[existing_columns.index('FileName')],
-            existing_record[existing_columns.index('Directory')],
-            existing_record[existing_columns.index('FileSize')],
-            existing_record[existing_columns.index('CreatedAt')],
-            existing_record[existing_columns.index('PositivePrompt')],
-            existing_record[existing_columns.index('NegativePrompt')],
-            existing_record[existing_columns.index('Steps')],
-            existing_record[existing_columns.index('Sampler')],
-            existing_record[existing_columns.index('CFGScale')],
-            existing_record[existing_columns.index('Seed')],
-            existing_record[existing_columns.index('ImageSize')],
-            existing_record[existing_columns.index('ModelHash')],
-            existing_record[existing_columns.index('Model')],
-            existing_record[existing_columns.index('SeedResizeFrom')],
-            existing_record[existing_columns.index('DenoisingStrength')],
-            existing_record[existing_columns.index('Version')],
-            existing_record[existing_columns.index('NSFWProbability')],
-            existing_record[existing_columns.index('MD5')],
-            existing_record[existing_columns.index('SHA1')],
-            existing_record[existing_columns.index('SHA256')],
-            existing_record[existing_columns.index('SHA256')]  # Use SHA256 as a condition for the WHERE clause
-        ))
-        conn.commit()
+        try:
+            cursor.execute(update_query, tuple(existing_record + [existing_record[existing_columns.index('SHA256')]]))
+            conn.commit()
+        except:
+            extraction_logger.error(f"Failed to update metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} in the database.")
+            extraction_logger.error(f"{cursor.status}")
+            extraction_logger.error(f"{cursor.description}")
+            extraction_logger.error(f"{cursor.diagnostics}")
+
         extraction_logger.info(f"Metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} has been updated in the database.")
     else:
         # The combination doesn't exist, so insert the metadata
-        cursor.execute(f'''
-        INSERT INTO {table} (
-            FileName, Directory, FileSize, CreatedAt, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
-            ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFWProbability, MD5, SHA1, SHA256
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (
-            metadata.get('File Name', ''),
-            metadata.get('Directory', ''),
-            metadata.get('File Size', ''),
-            metadata.get('Created at', ''),
-            metadata.get('Positive prompt', ''),
-            metadata.get('Negative prompt', ''),
-            metadata.get('Steps', ''),
-            metadata.get('Sampler', ''),
-            metadata.get('CFG scale', ''),
-            metadata.get('Seed', ''),
-            metadata.get('Size', ''),
-            metadata.get('Model hash', ''),
-            metadata.get('Model', ''),
-            metadata.get('Seed resize from', ''),
-            metadata.get('Denoising strength', ''),
-            metadata.get('Version', ''),
-            metadata.get('NSFWProbability', ''),
-            metadata.get('MD5', ''),
-            metadata.get('SHA1', ''),
-            metadata.get('SHA256', '')
-        ))
-        conn.commit()
+        try:
+            cursor.execute(f'''
+            INSERT INTO {table} (
+                FileName, Directory, FileSize, CreatedAt, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
+                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFWProbability, MD5, SHA1, SHA256
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                metadata.get('File Name', ''),
+                metadata.get('Directory', ''),
+                metadata.get('File Size', ''),
+                metadata.get('Created at', ''),
+                metadata.get('Positive prompt', ''),
+                metadata.get('Negative prompt', ''),
+                metadata.get('Steps', ''),
+                metadata.get('Sampler', ''),
+                metadata.get('CFG scale', ''),
+                metadata.get('Seed', ''),
+                metadata.get('Size', ''),
+                metadata.get('Model hash', ''),
+                metadata.get('Model', ''),
+                metadata.get('Seed resize from', ''),
+                metadata.get('Denoising strength', ''),
+                metadata.get('Version', ''),
+                metadata.get('NSFWProbability', ''),
+                metadata.get('MD5', ''),
+                metadata.get('SHA1', ''),
+                metadata.get('SHA256', '')
+            ))
+            conn.commit()
+        except:
+            logger.error(f"Error while extracting metadata from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')}.")
+        
         extraction_logger.info(f"Metadata from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} extracted and added to the database.")
 
 
@@ -398,7 +413,7 @@ def start_metadata_extractor():
 
                     if extracted_metadata is not None:
                         extraction_logger.info(f"Extracted metadata from {image_path} is {extracted_metadata}")
-                        insert_metadata_into_database(conn, table_name, existing_columns, extracted_metadata, extraction_logger)
+                        insert_metadata_into_database(conn, table_name, existing_columns, extracted_metadata, logger, extraction_logger)
 
         # Close the database connection
         conn.close()
