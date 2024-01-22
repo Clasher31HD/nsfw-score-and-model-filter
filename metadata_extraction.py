@@ -201,8 +201,9 @@ def connect_database(host, user, password, database_name, table_name, logger):
             database=database_name
         )
         cursor = conn.cursor()
-    except:
-        logger.error("Failed to connect to the database")
+    except mysql.connector.Error as e:
+        logger.error(f"Failed to connect to the database: {e}")
+        return None, []
 
     # Check if the table exists
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
@@ -239,8 +240,9 @@ def connect_database(host, user, password, database_name, table_name, logger):
         try:
             cursor.execute(create_table_query)
             conn.commit()
-        except:
-            logger.error(f"Table creation could not be executed.")
+        except mysql.connector.Error as e:
+            logger.error(f"Table creation could not be executed: {e}")
+            return None, []
     
         logger.info(f"Table {table_name} created successfully.")
     else:
@@ -259,9 +261,12 @@ def connect_database(host, user, password, database_name, table_name, logger):
             if column not in existing_columns:
                 # Add the column if it does not exist
                 add_column_query = f"ALTER TABLE {table_name} ADD COLUMN {column} TEXT"
-                cursor.execute(add_column_query)
-                conn.commit()
-                logger.info(f"Column {column} added successfully.")
+                try:
+                    cursor.execute(add_column_query)
+                    conn.commit()
+                    logger.info(f"Column {column} added successfully.")
+                except mysql.connector.Error as e:
+                    logger.error(f"Error adding column {column}: {e}")
 
     return conn, existing_columns
 
