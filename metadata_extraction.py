@@ -252,31 +252,9 @@ def update_database_table(conn, table_name, logger):
         logger.info(f"Table {table_name} created successfully.")
 
 
-def update_database_columns(conn, table_name, logger):
+def update_database_columns(conn, columns, table_name, logger):
     # Check and add columns if they do not exist
     cursor = conn.cursor()
-    columns = [
-        "FileName",
-        "Directory",
-        "FileSize",
-        "CreatedAt",
-        "PositivePrompt",
-        "NegativePrompt",
-        "Steps",
-        "Sampler",
-        "CFGScale",
-        "Seed",
-        "ImageSize",
-        "ModelHash",
-        "Model",
-        "SeedResizeFrom",
-        "DenoisingStrength",
-        "Version",
-        "NSFWProbability",
-        "MD5",
-        "SHA1",
-        "SHA256",
-    ]
 
     cursor.execute(f"DESCRIBE {table_name}")
     existing_columns = [column[0] for column in cursor.fetchall()]
@@ -291,8 +269,6 @@ def update_database_columns(conn, table_name, logger):
                 logger.info(f"Column {column} added successfully.")
             except mysql.connector.Error as e:
                 logger.error(f"Error adding column {column}: {e}")
-
-    return columns
 
 
 def check_if_metadata_exists(conn, metadata, table_name, logger):
@@ -461,6 +437,29 @@ def start_metadata_extractor():
             formatted_yesterday = yesterday.strftime("%Y-%m-%d")
             image_folder = os.path.join(image_folder, formatted_yesterday)
 
+        columns = [
+            "FileName",
+            "Directory",
+            "FileSize",
+            "CreatedAt",
+            "PositivePrompt",
+            "NegativePrompt",
+            "Steps",
+            "Sampler",
+            "CFGScale",
+            "Seed",
+            "ImageSize",
+            "ModelHash",
+            "Model",
+            "SeedResizeFrom",
+            "DenoisingStrength",
+            "Version",
+            "NSFWProbability",
+            "MD5",
+            "SHA1",
+            "SHA256",
+        ]
+
         # Create a MySQL database and table if it doesn't exist
         conn = connect_database(host, user, password, database_name, table_name, logger)
 
@@ -468,10 +467,10 @@ def start_metadata_extractor():
         update_database_table(conn, table_name, logger)
 
         # Update the database columns
-        columns = update_database_columns(conn, table_name, logger)
+        update_database_columns(conn, columns, table_name, logger)
 
         # Loop through the images in the folder
-        for root, dirs, files in os.walk(image_folder):
+        for root, files in os.walk(image_folder):
             for filename in files:
                 if filename.endswith(".png"):
                     image_path = os.path.join(root, filename)
