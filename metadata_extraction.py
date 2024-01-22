@@ -331,6 +331,7 @@ def insert_metadata_into_database(
             conn,
             cursor,
             metadata,
+            table,
             existing_columns,
             existing_record,
             logger,
@@ -382,7 +383,7 @@ def insert_metadata_into_database(
 
 
 def update_metadata_in_database(
-    conn, cursor, metadata, existing_columns, existing_record, logger, extraction_logger
+    conn, cursor, metadata, table, existing_columns, existing_record, logger, extraction_logger
 ):
     # Iterate through metadata fields and update the database record if necessary
     for field_name, value in metadata.items():
