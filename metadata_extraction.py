@@ -511,11 +511,11 @@ def start_metadata_extractor():
 
         # Close the database connection
         conn.close()
-        total_count = inserted_count + updated_count
+        total_count = str(inserted_count + updated_count)
         end_time = datetime.now()
         time_difference = str(end_time - start_time)
         logger.info(
-            f"Script finished. Duration: {time_difference}, Total count: {str(total_count)} ({str(inserted_count)} inserted, {str(updated_count)} updated)."
+            f"Script finished. Duration: {time_difference}, Total count: {total_count} ({str(inserted_count)} inserted, {str(updated_count)} updated)."
         )
     except Exception as e:
         logger.error("An unexpected error occurred: %s", str(e))
