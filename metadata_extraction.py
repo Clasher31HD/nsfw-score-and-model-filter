@@ -100,7 +100,7 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw
 
             nsfw_probability = n2.predict_image(image_path)
             if nsfw_probability is None:
-                logger.error(f"An error occurred: {str(e)}")
+                logger.error(f"NSFW Probability is None.")
                 return {}
             
             nsfw_logger.info(f"NSFWProbability for image '{os.path.basename(image_path)}' is {nsfw_probability}")
