@@ -16,23 +16,25 @@ def read_configuration():
         raise FileNotFoundError("metadata_config.yml file not found.")
     except yaml.YAMLError as e:
         raise ValueError(f"Error parsing YAML in yts_config.yml: {e}")
-    
+
 
 def setup_logger():
     # General Settings
     config = read_configuration()
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     level = config["level"]
     logs_directory = config["logs_directory"]
     log_by_day = config.get("log_by_day", True)
     if log_by_day:
-        year = str(datetime.now().strftime('%Y'))
-        month = str(datetime.now().strftime('%m'))
-        day = str(datetime.now().strftime('%d'))
+        year = str(datetime.now().strftime("%Y"))
+        month = str(datetime.now().strftime("%m"))
+        day = str(datetime.now().strftime("%d"))
         directory_path = os.path.join(logs_directory, year, month, day)
         os.makedirs(directory_path, exist_ok=True)
         logger_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-Info.log")
-        extraction_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-Extraction.log")
+        extraction_log_file = os.path.join(
+            directory_path, f"{year}-{month}-{day}-Extraction.log"
+        )
         nsfw_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-NSFW.log")
     else:
         logger_log_file = os.path.join(logs_directory, "Info.log")
@@ -51,15 +53,15 @@ def setup_logger():
     extraction_file_handler = logging.FileHandler(extraction_log_file)
     extraction_file_handler.setFormatter(formatter)
     extraction_file_handler.setLevel(level)
-    extraction_logger = logging.getLogger('extraction')
+    extraction_logger = logging.getLogger("extraction")
     extraction_logger.setLevel(level)
     extraction_logger.addHandler(extraction_file_handler)
 
-    # NSFW Logger 
+    # NSFW Logger
     nsfw_file_handler = logging.FileHandler(nsfw_log_file)
     nsfw_file_handler.setFormatter(formatter)
     nsfw_file_handler.setLevel(level)
-    nsfw_logger = logging.getLogger('nsfw')
+    nsfw_logger = logging.getLogger("nsfw")
     nsfw_logger.setLevel(level)
     nsfw_logger.addHandler(nsfw_file_handler)
 
@@ -72,11 +74,7 @@ def get_image_metadata(image_path, logger):
         with Image.open(image_path) as img:
             metadata = img.info
             if metadata:
-                if metadata is not None:
-                    return metadata
-                else:
-                    logger.error(f"Metadata from file {image_path} is not available")
-                    return {}
+                return metadata
             else:
                 logger.error(f"Metadata from file {image_path} is not available")
                 return {}
@@ -85,15 +83,18 @@ def get_image_metadata(image_path, logger):
         return {}
 
 
-def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw_logger):
+def extract_metadata_from_parameter(
+    metadata_str, image_path, nsfw, logger, nsfw_logger
+):
     if metadata_str is None:
         logger.error("metadata_str is None.")
         return {}
-    
+
     metadata_dict = {}
 
     if nsfw:
         import opennsfw2 as n2
+
         try:
             img = Image.open(image_path)
             img.thumbnail((512, 512))
@@ -102,11 +103,15 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw
             if nsfw_probability is None:
                 logger.error(f"NSFW Probability is None.")
                 return {}
-            
-            nsfw_logger.info(f"NSFWProbability for image '{os.path.basename(image_path)}' is {nsfw_probability}")
+
+            nsfw_logger.info(
+                f"NSFWProbability for image '{os.path.basename(image_path)}' is {nsfw_probability}"
+            )
             metadata_dict["NSFWProbability"] = nsfw_probability
         except OSError as e:
-            nsfw_logger.warning(f"Skipping image '{os.path.basename(image_path)}' due to an error: {str(e)}")
+            nsfw_logger.warning(
+                f"Skipping image '{os.path.basename(image_path)}' due to an error: {str(e)}"
+            )
     else:
         nsfw_probability = ""
         metadata_dict["NSFWProbability"] = nsfw_probability
@@ -155,7 +160,9 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw
         negative_prompt_end = remaining_content.find("Steps:")
 
         if negative_prompt_end != -1:
-            negative_prompt = remaining_content[len("Negative prompt:"):negative_prompt_end].strip()
+            negative_prompt = remaining_content[
+                len("Negative prompt:") : negative_prompt_end
+            ].strip()
             metadata_dict["Negative prompt"] = negative_prompt
         else:
             metadata_dict["Negative prompt"] = remaining_content
@@ -195,10 +202,7 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw
 def connect_database(host, user, password, database_name, table_name, logger):
     try:
         conn = mysql.connector.connect(
-            host=host,
-            user=user,
-            password=password,
-            database=database_name
+            host=host, user=user, password=password, database=database_name
         )
         cursor = conn.cursor()
     except mysql.connector.Error as e:
@@ -207,11 +211,18 @@ def connect_database(host, user, password, database_name, table_name, logger):
 
     # Check if the table exists
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
-    table_exists = cursor.fetchone()
 
+    existing_columns = update_database_table_and_columns(
+        conn, cursor, table_name, logger
+    )
+    return conn, existing_columns
+
+
+def update_database_table_and_columns(conn, cursor, table_name, logger):
+    table_exists = cursor.fetchone()
     if not table_exists:
         # Create the table if it doesn't exist
-        create_table_query = f'''
+        create_table_query = f"""
             CREATE TABLE {table_name} (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 FileName VARCHAR(255),
@@ -235,7 +246,7 @@ def connect_database(host, user, password, database_name, table_name, logger):
                 SHA1 TEXT,
                 SHA256 TEXT
             )
-        '''
+        """
 
         try:
             cursor.execute(create_table_query)
@@ -243,15 +254,31 @@ def connect_database(host, user, password, database_name, table_name, logger):
         except mysql.connector.Error as e:
             logger.error(f"Table creation could not be executed: {e}")
             return None, []
-    
+
         logger.info(f"Table {table_name} created successfully.")
     else:
         # Check and add columns if they do not exist
         expected_columns = [
-            'FileName', 'Directory', 'FileSize', 'CreatedAt', 'PositivePrompt', 'NegativePrompt', 'Steps',
-            'Sampler', 'CFGScale', 'Seed', 'ImageSize', 'ModelHash',
-            'Model', 'SeedResizeFrom', 'DenoisingStrength', 'Version',
-            'NSFWProbability', 'MD5', 'SHA1', 'SHA256'
+            "FileName",
+            "Directory",
+            "FileSize",
+            "CreatedAt",
+            "PositivePrompt",
+            "NegativePrompt",
+            "Steps",
+            "Sampler",
+            "CFGScale",
+            "Seed",
+            "ImageSize",
+            "ModelHash",
+            "Model",
+            "SeedResizeFrom",
+            "DenoisingStrength",
+            "Version",
+            "NSFWProbability",
+            "MD5",
+            "SHA1",
+            "SHA256",
         ]
 
         cursor.execute(f"DESCRIBE {table_name}")
@@ -268,23 +295,25 @@ def connect_database(host, user, password, database_name, table_name, logger):
                 except mysql.connector.Error as e:
                     logger.error(f"Error adding column {column}: {e}")
 
-    return conn, existing_columns
+    return existing_columns
 
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
-def insert_metadata_into_database(conn, table, existing_columns, metadata, logger, extraction_logger):
+def insert_metadata_into_database(
+    conn, table, existing_columns, metadata, logger, extraction_logger
+):
     cursor = conn.cursor()
 
     if metadata is None:
         logger.error(f"No metadata found for {table}.")
-        return 
-    
+        return
+
     # Check if the data already exists in the database
-    query = f'''
+    query = f"""
     SELECT * FROM {table}
     WHERE SHA256 = %s
-    '''
-    cursor.execute(query, (metadata.get('SHA256', ''),))
+    """
+    cursor.execute(query, (metadata.get("SHA256", ""),))
     existing_record = list(cursor.fetchone())
     logger.info(f"Existing record: {existing_record}")
 
@@ -293,27 +322,84 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, logge
         return
 
     if existing_record:
-        # Iterate through metadata fields and update the database record if necessary
-        for field_name, value in metadata.items():
-            # Check if the field is in the existing columns
-            if field_name in existing_columns:
-                # Get the index of the field
-                field_index = existing_columns.index(field_name)
-                
-                # Check if the values are different
-                if existing_record[field_index] != value:
-                    # Update the value in the existing record
-                    existing_record[field_index] = value
-                    logger.info(f"Updated {field_name} to {value} in existing record.")
+        update_metadata_in_database(
+            conn,
+            cursor,
+            metadata,
+            existing_columns,
+            existing_record,
+            logger,
+            extraction_logger,
+        )
+    else:
+        # The combination doesn't exist, so insert the metadata
+        try:
+            cursor.execute(
+                f"""
+            INSERT INTO {table} (
+                FileName, Directory, FileSize, CreatedAt, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
+                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFWProbability, MD5, SHA1, SHA256
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+                (
+                    metadata.get("File Name", ""),
+                    metadata.get("Directory", ""),
+                    metadata.get("File Size", ""),
+                    metadata.get("Created at", ""),
+                    metadata.get("Positive prompt", ""),
+                    metadata.get("Negative prompt", ""),
+                    metadata.get("Steps", ""),
+                    metadata.get("Sampler", ""),
+                    metadata.get("CFG scale", ""),
+                    metadata.get("Seed", ""),
+                    metadata.get("Size", ""),
+                    metadata.get("Model hash", ""),
+                    metadata.get("Model", ""),
+                    metadata.get("Seed resize from", ""),
+                    metadata.get("Denoising strength", ""),
+                    metadata.get("Version", ""),
+                    metadata.get("NSFWProbability", ""),
+                    metadata.get("MD5", ""),
+                    metadata.get("SHA1", ""),
+                    metadata.get("SHA256", ""),
+                ),
+            )
+            conn.commit()
+        except:
+            logger.error(
+                f"Error while inserting metadata into database from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')}."
+            )
 
-        if 'SHA256' in existing_columns:
-            sha256_index = existing_columns.index('SHA256')
-            # Ensure the index is valid before accessing it
-            if sha256_index < len(existing_record):
-                existing_record[sha256_index] = metadata.get('SHA256', '')
+        extraction_logger.info(
+            f"Metadata from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} extracted and added to the database."
+        )
 
-        # Update the database record
-        update_query = f'''
+
+def update_metadata_in_database(
+    conn, cursor, metadata, existing_columns, existing_record, logger, extraction_logger
+):
+    # Iterate through metadata fields and update the database record if necessary
+    for field_name, value in metadata.items():
+        # Check if the field is in the existing columns
+        if field_name in existing_columns:
+            # Get the index of the field
+            field_index = existing_columns.index(field_name)
+
+            # Check if the values are different
+            if existing_record[field_index] != value:
+                # Update the value in the existing record
+                existing_record[field_index] = value
+                logger.info(f"Updated {field_name} to {value} in existing record.")
+
+    if "SHA256" in existing_columns:
+        sha256_index = existing_columns.index("SHA256")
+        # Ensure the index is valid before accessing it
+        if sha256_index < len(existing_record):
+            existing_record[sha256_index] = metadata.get("SHA256", "")
+
+    # Update the database record
+    update_query = f"""
         UPDATE {table}
         SET
             FileName = %s,
@@ -337,51 +423,23 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, logge
             SHA1 = %s,
             SHA256 = %s
         WHERE SHA256 = %s
-        '''
-        logger.info(f"Update Query: {update_query}")
-        try:
-            cursor.execute(update_query, tuple(existing_record + [existing_record[existing_columns.index('SHA256')]]))
-            conn.commit()
-        except:
-            extraction_logger.error(f"Failed to update metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} in the database.")
+        """
+    try:
+        cursor.execute(
+            update_query,
+            tuple(
+                existing_record + [existing_record[existing_columns.index("SHA256")]]
+            ),
+        )
+        conn.commit()
+    except:
+        extraction_logger.error(
+            f"Failed to update metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} in the database."
+        )
 
-        extraction_logger.info(f"Metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} has been updated in the database.")
-    else:
-        # The combination doesn't exist, so insert the metadata
-        try:
-            cursor.execute(f'''
-            INSERT INTO {table} (
-                FileName, Directory, FileSize, CreatedAt, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
-                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFWProbability, MD5, SHA1, SHA256
-            )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                metadata.get('File Name', ''),
-                metadata.get('Directory', ''),
-                metadata.get('File Size', ''),
-                metadata.get('Created at', ''),
-                metadata.get('Positive prompt', ''),
-                metadata.get('Negative prompt', ''),
-                metadata.get('Steps', ''),
-                metadata.get('Sampler', ''),
-                metadata.get('CFG scale', ''),
-                metadata.get('Seed', ''),
-                metadata.get('Size', ''),
-                metadata.get('Model hash', ''),
-                metadata.get('Model', ''),
-                metadata.get('Seed resize from', ''),
-                metadata.get('Denoising strength', ''),
-                metadata.get('Version', ''),
-                metadata.get('NSFWProbability', ''),
-                metadata.get('MD5', ''),
-                metadata.get('SHA1', ''),
-                metadata.get('SHA256', '')
-            ))
-            conn.commit()
-        except:
-            logger.error(f"Error while inserting metadata into database from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')}.")
-        
-        extraction_logger.info(f"Metadata from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} extracted and added to the database.")
+    extraction_logger.info(
+        f"Metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} has been updated in the database."
+    )
 
 
 def start_metadata_extractor():
@@ -400,7 +458,9 @@ def start_metadata_extractor():
             use_yesterday = config.get("use_yesterday", False)
             nsfw = config.get("nsfw_probability", True)
 
-            logger.info(f"Host: {host}, User: {user}, Password: {password}, Database: {database_name}, Table: {table_name}, Image Folder: {image_folder}, Use Yesterday: {use_yesterday}, NSFW: {nsfw}")
+            logger.info(
+                f"Host: {host}, User: {user}, Password: {password}, Database: {database_name}, Table: {table_name}, Image Folder: {image_folder}, Use Yesterday: {use_yesterday}, NSFW: {nsfw}"
+            )
         except (KeyError, ValueError) as e:
             raise ValueError(f"Invalid configuration: {str(e)}")
 
@@ -411,20 +471,33 @@ def start_metadata_extractor():
             image_folder = os.path.join(image_folder, formatted_yesterday)
 
         # Create a MySQL database and table if it doesn't exist
-        conn, existing_columns = connect_database(host, user, password, database_name, table_name, logger)
+        conn, existing_columns = connect_database(
+            host, user, password, database_name, table_name, logger
+        )
 
         # Loop through the images in the folder
         for root, dirs, files in os.walk(image_folder):
             for filename in files:
-                if filename.endswith('.png'):
+                if filename.endswith(".png"):
                     image_path = os.path.join(root, filename)
                     metadata = get_image_metadata(image_path, logger)
                     parameters_metadata = metadata.get("parameters", "")
-                    extracted_metadata = extract_metadata_from_parameter(parameters_metadata, image_path, nsfw, logger, nsfw_logger)
+                    extracted_metadata = extract_metadata_from_parameter(
+                        parameters_metadata, image_path, nsfw, logger, nsfw_logger
+                    )
 
                     if extracted_metadata is not None:
-                        extraction_logger.info(f"Extracted metadata from {image_path} is {extracted_metadata}")
-                        insert_metadata_into_database(conn, table_name, existing_columns, extracted_metadata, logger, extraction_logger)
+                        extraction_logger.info(
+                            f"Extracted metadata from {image_path} is {extracted_metadata}"
+                        )
+                        insert_metadata_into_database(
+                            conn,
+                            table_name,
+                            existing_columns,
+                            extracted_metadata,
+                            logger,
+                            extraction_logger,
+                        )
 
         # Close the database connection
         conn.close()
@@ -433,6 +506,7 @@ def start_metadata_extractor():
         logger.info(f"Script finished. Duration: {time_difference}")
     except Exception as e:
         logger.error("An unexpected error occurred: %s", str(e))
+
 
 if __name__ == "__main__":
     start_metadata_extractor()
