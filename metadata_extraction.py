@@ -73,23 +73,14 @@ def get_image_metadata(image_path, logger):
     try:
         with Image.open(image_path) as img:
             metadata = img.info
-            if metadata:
-                return metadata
-            else:
-                logger.error(f"Metadata from file {image_path} is not available")
-                return {}
+            return metadata
     except Exception as e:
         logger.error(f"An error occurred: {str(e)}")
-        return {}
 
 
 def extract_metadata_from_parameter(
     metadata_str, image_path, nsfw, logger, nsfw_logger
 ):
-    if metadata_str is None:
-        logger.error("metadata_str is None.")
-        return {}
-
     metadata_dict = {}
 
     if nsfw:
@@ -475,40 +466,46 @@ def start_metadata_extractor():
                 if filename.endswith(".png"):
                     image_path = os.path.join(root, filename)
                     metadata = get_image_metadata(image_path, logger)
-                    parameters_metadata = metadata.get("parameters", "")
-                    extracted_metadata = extract_metadata_from_parameter(
-                        parameters_metadata, image_path, nsfw, logger, nsfw_logger
-                    )
-
-                    if extracted_metadata is not None:
-                        extraction_logger.info(
-                            f"Extracted metadata from {image_path} is {extracted_metadata}"
-                        )
-
-                        # Check if metadata already exists in database
-                        exists = check_if_metadata_exists(
-                            conn, metadata, table_name, logger
-                        )
-
-                        if exists:
-                            # Update metadata in database
-                            update_metadata_in_database(
-                                conn,
-                                metadata,
-                                table_name,
+                    if metadata is not None:
+                        parameters_metadata = metadata.get("parameters", "")
+                        if parameters_metadata is not None:
+                            extracted_metadata = extract_metadata_from_parameter(
+                                parameters_metadata,
+                                image_path,
+                                nsfw,
                                 logger,
-                                extraction_logger,
+                                nsfw_logger,
                             )
-                        else:
-                            # Insert metadata into database
-                            insert_metadata_into_database(
-                                conn,
-                                table_name,
-                                columns,
-                                extracted_metadata,
-                                logger,
-                                extraction_logger,
-                            )
+
+                            if extracted_metadata is not None:
+                                extraction_logger.info(
+                                    f"Extracted metadata from {image_path} is {extracted_metadata}"
+                                )
+
+                                # Check if metadata already exists in database
+                                exists = check_if_metadata_exists(
+                                    conn, metadata, table_name, logger
+                                )
+
+                                if exists:
+                                    # Update metadata in database
+                                    update_metadata_in_database(
+                                        conn,
+                                        metadata,
+                                        table_name,
+                                        logger,
+                                        extraction_logger,
+                                    )
+                                else:
+                                    # Insert metadata into database
+                                    insert_metadata_into_database(
+                                        conn,
+                                        table_name,
+                                        columns,
+                                        extracted_metadata,
+                                        logger,
+                                        extraction_logger,
+                                    )
 
         # Close the database connection
         conn.close()
