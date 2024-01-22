@@ -298,7 +298,7 @@ def update_database_columns(conn, table_name, logger):
     return columns
 
 
-def check_if_metadata_exists(conn, metadata, table, logger)
+def check_if_metadata_exists(conn, metadata, table, logger):
     cursor = conn.cursor()
 
     if metadata is None:
@@ -319,9 +319,7 @@ def check_if_metadata_exists(conn, metadata, table, logger)
 
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
-def insert_metadata_into_database(
-    conn, table, metadata, logger, extraction_logger
-):
+def insert_metadata_into_database(conn, table, metadata, logger, extraction_logger):
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -505,7 +503,7 @@ def start_metadata_extractor():
                                 extracted_metadata,
                                 logger,
                                 extraction_logger,
-                             )
+                            )
                         else:
                             insert_metadata_into_database(
                                 conn,
