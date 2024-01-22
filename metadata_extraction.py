@@ -211,12 +211,11 @@ def connect_database(host, user, password, database_name, table_name, logger):
 
     # Check if the table exists
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
-
-    existing_columns = update_database_table(conn, cursor, table_name, logger)
-    return conn, existing_columns
+    return conn
 
 
-def update_database_table(conn, cursor, table_name, logger):
+def update_database_table(conn, table_name, logger):
+    cursor = conn.cursor()
     table_exists = cursor.fetchone()
     if not table_exists:
         # Create the table if it doesn't exist
@@ -254,14 +253,12 @@ def update_database_table(conn, cursor, table_name, logger):
             return None, []
 
         logger.info(f"Table {table_name} created successfully.")
-    else:
-        existing_columns = update_database_columns(conn, cursor, table_name, logger)
-        return existing_columns
 
 
-def update_database_columns(conn, cursor, table_name, logger):
+def update_database_columns(conn, table_name, logger):
     # Check and add columns if they do not exist
-    expected_columns = [
+    cursor = conn.cursor()
+    columns = [
         "FileName",
         "Directory",
         "FileSize",
@@ -287,7 +284,7 @@ def update_database_columns(conn, cursor, table_name, logger):
     cursor.execute(f"DESCRIBE {table_name}")
     existing_columns = [column[0] for column in cursor.fetchall()]
 
-    for column in expected_columns:
+    for column in columns:
         if column not in existing_columns:
             # Add the column if it does not exist
             add_column_query = f"ALTER TABLE {table_name} ADD COLUMN {column} TEXT"
@@ -298,13 +295,10 @@ def update_database_columns(conn, cursor, table_name, logger):
             except mysql.connector.Error as e:
                 logger.error(f"Error adding column {column}: {e}")
 
-    return existing_columns
+    return columns
 
 
-# Function to insert metadata into the MySQL database if it doesn't already exist
-def insert_metadata_into_database(
-    conn, table, existing_columns, metadata, logger, extraction_logger
-):
+def check_if_metadata_exists(conn, metadata, table, logger)
     cursor = conn.cursor()
 
     if metadata is None:
@@ -320,63 +314,54 @@ def insert_metadata_into_database(
     existing_record = list(cursor.fetchone())
     logger.info(f"Existing record: {existing_record}")
 
-    if existing_record is None:
-        logger.error(f"No existing record found for {table}.")
-        return
+    if existing_record:
+        return existing_record
 
-    if not existing_record:
-        # The combination doesn't exist, so insert the metadata
-        try:
-            cursor.execute(
-                f"""
-            INSERT INTO {table} (
-                FileName, Directory, FileSize, CreatedAt, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
-                ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFWProbability, MD5, SHA1, SHA256
-            )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """,
-                (
-                    metadata.get("File Name", ""),
-                    metadata.get("Directory", ""),
-                    metadata.get("File Size", ""),
-                    metadata.get("Created at", ""),
-                    metadata.get("Positive prompt", ""),
-                    metadata.get("Negative prompt", ""),
-                    metadata.get("Steps", ""),
-                    metadata.get("Sampler", ""),
-                    metadata.get("CFG scale", ""),
-                    metadata.get("Seed", ""),
-                    metadata.get("Size", ""),
-                    metadata.get("Model hash", ""),
-                    metadata.get("Model", ""),
-                    metadata.get("Seed resize from", ""),
-                    metadata.get("Denoising strength", ""),
-                    metadata.get("Version", ""),
-                    metadata.get("NSFWProbability", ""),
-                    metadata.get("MD5", ""),
-                    metadata.get("SHA1", ""),
-                    metadata.get("SHA256", ""),
-                ),
-            )
-            conn.commit()
-        except:
-            logger.error(
-                f"Error while inserting metadata into database from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')}."
-            )
 
+# Function to insert metadata into the MySQL database if it doesn't already exist
+def insert_metadata_into_database(
+    conn, table, metadata, logger, extraction_logger
+):
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            f"""
+        INSERT INTO {table} (
+            FileName, Directory, FileSize, CreatedAt, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
+            ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFWProbability, MD5, SHA1, SHA256
+        )
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """,
+            (
+                metadata.get("File Name", ""),
+                metadata.get("Directory", ""),
+                metadata.get("File Size", ""),
+                metadata.get("Created at", ""),
+                metadata.get("Positive prompt", ""),
+                metadata.get("Negative prompt", ""),
+                metadata.get("Steps", ""),
+                metadata.get("Sampler", ""),
+                metadata.get("CFG scale", ""),
+                metadata.get("Seed", ""),
+                metadata.get("Size", ""),
+                metadata.get("Model hash", ""),
+                metadata.get("Model", ""),
+                metadata.get("Seed resize from", ""),
+                metadata.get("Denoising strength", ""),
+                metadata.get("Version", ""),
+                metadata.get("NSFWProbability", ""),
+                metadata.get("MD5", ""),
+                metadata.get("SHA1", ""),
+                metadata.get("SHA256", ""),
+            ),
+        )
+        conn.commit()
         extraction_logger.info(
             f"Metadata from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} extracted and added to the database."
         )
-    else:
-        update_metadata_in_database(
-            conn,
-            cursor,
-            metadata,
-            table,
-            existing_columns,
-            existing_record,
-            logger,
-            extraction_logger,
+    except:
+        logger.error(
+            f"Error while inserting metadata into database from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')}."
         )
 
 
@@ -485,6 +470,12 @@ def start_metadata_extractor():
             host, user, password, database_name, table_name, logger
         )
 
+        # Update the database table
+        update_database_table(conn, table_name, logger)
+
+        # Update the database columns
+        columns = update_database_columns(conn, table_name, logger)
+
         # Loop through the images in the folder
         for root, dirs, files in os.walk(image_folder):
             for filename in files:
@@ -500,14 +491,30 @@ def start_metadata_extractor():
                         extraction_logger.info(
                             f"Extracted metadata from {image_path} is {extracted_metadata}"
                         )
-                        insert_metadata_into_database(
-                            conn,
-                            table_name,
-                            existing_columns,
-                            extracted_metadata,
-                            logger,
-                            extraction_logger,
+
+                        # Check if metadata already exists in database
+                        exists = check_if_metadata_exists(
+                            conn, table_name, columns, extracted_metadata, logger
                         )
+
+                        if exists:
+                            update_metadata_in_database(
+                                conn,
+                                table_name,
+                                columns,
+                                extracted_metadata,
+                                logger,
+                                extraction_logger,
+                             )
+                        else:
+                            insert_metadata_into_database(
+                                conn,
+                                table_name,
+                                columns,
+                                extracted_metadata,
+                                logger,
+                                extraction_logger,
+                            )
 
         # Close the database connection
         conn.close()
