@@ -24,18 +24,19 @@ def setup_logger():
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     level = config["level"]
     logs_directory = config["logs_directory"]
-    today = datetime.now().strftime("%Y-%m-%d")
-    directory_path = os.path.join(logs_directory, today)
-    os.makedirs(directory_path, exist_ok=True)
-    
-    # Separate log files for each component and a consolidated log file
-    log_files = [f"{today}-Info.log", f"{today}-Extraction.log", f"{today}-NSFW.log", f"{today}-Debug.log"]
-    log_files_latest = ["Info.log", "Extraction.log", "NSFW.log", "Debug.log"]
+    log_by_day = config.get("log_by_day", True)
+
+    # Create directory based on log_by_day
+    if log_by_day:
+        today = datetime.now().strftime("%Y-%m-%d")
+        directory_path = os.path.join(logs_directory, today)
+        os.makedirs(directory_path, exist_ok=True)
+        log_files = [f"{today}-Info.log", f"{today}-Extraction.log", f"{today}-NSFW.log", f"{today}-Debug.log"]
+    else:
+        log_files = ["Info.log", "Extraction.log", "NSFW.log", "Debug.log"]
 
     # Initialize loggers
     loggers = {}
-
-    # Iterate over separate log files
     for log_file in log_files:
         logger_name = log_file.split('-')[1].split('.')[0].lower()
         file_handler = logging.FileHandler(os.path.join(directory_path, log_file))
@@ -45,17 +46,6 @@ def setup_logger():
         logger.setLevel(level)
         logger.addHandler(file_handler)
         loggers[logger_name] = logger
-
-    # Iterate over consolidated log file
-    for log_file_latest in log_files_latest:
-        logger_name_latest = log_file_latest.split('.')[0].lower()
-        file_handler_latest = logging.FileHandler(os.path.join(logs_directory, log_file_latest))
-        file_handler_latest.setFormatter(formatter)
-        file_handler_latest.setLevel(level)
-        logger_latest = logging.getLogger(logger_name_latest)
-        logger_latest.setLevel(level)
-        logger_latest.addHandler(file_handler_latest)
-        loggers[logger_name_latest] = logger_latest
 
     return loggers.values()
 
