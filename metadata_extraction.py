@@ -24,58 +24,40 @@ def setup_logger():
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
     level = config["level"]
     logs_directory = config["logs_directory"]
-    log_by_day = config.get("log_by_day", True)
-    if log_by_day:
-        year = str(datetime.now().strftime("%Y"))
-        month = str(datetime.now().strftime("%m"))
-        day = str(datetime.now().strftime("%d"))
-        directory_path = os.path.join(logs_directory, year, month, day)
-        os.makedirs(directory_path, exist_ok=True)
-        logger_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-Info.log")
-        extraction_log_file = os.path.join(
-            directory_path, f"{year}-{month}-{day}-Extraction.log"
-        )
-        nsfw_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-NSFW.log")
-        debug_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-Debug.log")
-    else:
-        logger_log_file = os.path.join(logs_directory, "Info.log")
-        extraction_log_file = os.path.join(logs_directory, "Extraction.log")
-        nsfw_log_file = os.path.join(logs_directory, "NSFW.log")
-        debug_log_file = os.path.join(logs_directory, "Debug.log")
+    today = datetime.now().strftime("%Y-%m-%d")
+    directory_path = os.path.join(logs_directory, today)
+    os.makedirs(directory_path, exist_ok=True)
+    
+    # Separate log files for each component and a consolidated log file
+    log_files = [f"{today}-Info.log", f"{today}-Extraction.log", f"{today}-NSFW.log", f"{today}-Debug.log"]
+    log_files_latest = ["Info.log", "Extraction.log", "NSFW.log", "Debug.log"]
 
-    # Standard Logger
-    logger_file_handler = logging.FileHandler(logger_log_file)
-    logger_file_handler.setFormatter(formatter)
-    logger_file_handler.setLevel(level)
-    logger = logging.getLogger(__name__)
-    logger.setLevel(level)
-    logger.addHandler(logger_file_handler)
+    # Initialize loggers
+    loggers = {}
 
-    # Extraction Logger
-    extraction_file_handler = logging.FileHandler(extraction_log_file)
-    extraction_file_handler.setFormatter(formatter)
-    extraction_file_handler.setLevel(level)
-    extraction_logger = logging.getLogger("extraction")
-    extraction_logger.setLevel(level)
-    extraction_logger.addHandler(extraction_file_handler)
+    # Iterate over separate log files
+    for log_file in log_files:
+        logger_name = log_file.split('-')[1].split('.')[0].lower()
+        file_handler = logging.FileHandler(os.path.join(directory_path, log_file))
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel(level)
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(level)
+        logger.addHandler(file_handler)
+        loggers[logger_name] = logger
 
-    # NSFW Logger
-    nsfw_file_handler = logging.FileHandler(nsfw_log_file)
-    nsfw_file_handler.setFormatter(formatter)
-    nsfw_file_handler.setLevel(level)
-    nsfw_logger = logging.getLogger("nsfw")
-    nsfw_logger.setLevel(level)
-    nsfw_logger.addHandler(nsfw_file_handler)
+    # Iterate over consolidated log file
+    for log_file_latest in log_files_latest:
+        logger_name_latest = log_file_latest.split('.')[0].lower()
+        file_handler_latest = logging.FileHandler(os.path.join(logs_directory, log_file_latest))
+        file_handler_latest.setFormatter(formatter)
+        file_handler_latest.setLevel(level)
+        logger_latest = logging.getLogger(logger_name_latest)
+        logger_latest.setLevel(level)
+        logger_latest.addHandler(file_handler_latest)
+        loggers[logger_name_latest] = logger_latest
 
-    # Debug Logger
-    debug_file_handler = logging.FileHandler(debug_log_file)
-    debug_file_handler.setFormatter(formatter)
-    debug_file_handler.setLevel(level)
-    debug_logger = logging.getLogger("debug")
-    debug_logger.setLevel(level)
-    debug_logger.addHandler(debug_file_handler)
-
-    return logger, extraction_logger, nsfw_logger, debug_logger
+    return loggers.values()
 
 
 # Function to extract metadata categories and subcategories
