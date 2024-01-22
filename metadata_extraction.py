@@ -212,9 +212,7 @@ def connect_database(host, user, password, database_name, table_name, logger):
     # Check if the table exists
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
 
-    existing_columns = update_database_table(
-        conn, cursor, table_name, logger
-    )
+    existing_columns = update_database_table(conn, cursor, table_name, logger)
     return conn, existing_columns
 
 
@@ -383,7 +381,14 @@ def insert_metadata_into_database(
 
 
 def update_metadata_in_database(
-    conn, cursor, metadata, table, existing_columns, existing_record, logger, extraction_logger
+    conn,
+    cursor,
+    metadata,
+    table,
+    existing_columns,
+    existing_record,
+    logger,
+    extraction_logger,
 ):
     # Iterate through metadata fields and update the database record if necessary
     for field_name, value in metadata.items():
@@ -438,14 +443,13 @@ def update_metadata_in_database(
             ),
         )
         conn.commit()
+        extraction_logger.info(
+            f"Metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} has been updated in the database."
+        )
     except:
         extraction_logger.error(
             f"Failed to update metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} in the database."
         )
-
-    extraction_logger.info(
-        f"Metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} has been updated in the database."
-    )
 
 
 def start_metadata_extractor():
