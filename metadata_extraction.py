@@ -31,14 +31,19 @@ def setup_logger():
         today = datetime.now().strftime("%Y-%m-%d")
         directory_path = os.path.join(logs_directory, today)
         os.makedirs(directory_path, exist_ok=True)
-        log_files = [f"{today}-Info.log", f"{today}-Extraction.log", f"{today}-NSFW.log", f"{today}-Debug.log"]
+        log_files = [
+            f"{today}-Info.log",
+            f"{today}-Extraction.log",
+            f"{today}-NSFW.log",
+            f"{today}-Debug.log",
+        ]
     else:
         log_files = ["Info.log", "Extraction.log", "NSFW.log", "Debug.log"]
 
     # Initialize loggers
     loggers = {}
     for log_file in log_files:
-        logger_name = log_file.split('-')[1].split('.')[0].lower()
+        logger_name = log_file.split("-")[1].split(".")[0].lower()
         file_handler = logging.FileHandler(os.path.join(directory_path, log_file))
         file_handler.setFormatter(formatter)
         file_handler.setLevel(level)
@@ -153,9 +158,7 @@ def extract_metadata_from_parameter(metadata, image_path, nsfw, logger, nsfw_log
                 key, value = key_value[0], key_value[1]
                 metadata_dict[key] = value
             else:
-                logger.warning(
-                    f"Invalid key-value pair: {segment}. Ignoring..."
-                )
+                logger.warning(f"Invalid key-value pair: {segment}. Ignoring...")
     elif steps_index != -1:
         positive_prompt = metadata[:steps_index].strip()
         metadata_dict["Positive prompt"] = positive_prompt
@@ -450,8 +453,10 @@ def start_metadata_extractor():
         update_database_columns(conn, columns, table_name, logger)
         logger.debug(f"Updated MySQL database columns")
 
+        inserted_count = 0
+        updated_count = 0
         # Loop through the images in the folder
-        for root, dirs, files in os.walk(image_folder):
+        for root, files in os.walk(image_folder):
             for filename in files:
                 if filename.endswith(".png"):
                     image_path = os.path.join(root, filename)
@@ -490,6 +495,7 @@ def start_metadata_extractor():
                             logger,
                             extraction_logger,
                         )
+                        inserted_count += 1
                     elif row_count == 1:
                         # Update metadata in database
                         update_metadata_in_database(
@@ -499,14 +505,18 @@ def start_metadata_extractor():
                             logger,
                             extraction_logger,
                         )
+                        updated_count += 1
                     else:
                         logger.error(f"Row count is {row_count}. Expected 0 or 1.")
 
         # Close the database connection
         conn.close()
+        total_count = inserted_count + updated_count
         end_time = datetime.now()
         time_difference = str(end_time - start_time)
-        logger.info(f"Script finished. Duration: {time_difference}")
+        logger.info(
+            f"Script finished. Duration: {time_difference}, Total count: {total_count} ({inserted_count} inserted, {updated_count} updated)."
+        )
     except Exception as e:
         logger.error("An unexpected error occurred: %s", str(e))
 
