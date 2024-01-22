@@ -361,29 +361,11 @@ def update_metadata_in_database(
     cursor,
     metadata,
     table_name,
-    existing_columns,
-    existing_record,
     logger,
     extraction_logger,
 ):
-    # Iterate through metadata fields and update the database record if necessary
-    for field_name, value in metadata.items():
-        # Check if the field is in the existing columns
-        if "SHA256" in existing_columns:
-            sha256_index = existing_columns.index("SHA256")
-            # Ensure the index is valid before accessing it
-            if sha256_index < len(existing_record):
-                existing_record[sha256_index] = metadata.get("SHA256", "")
-
-        if field_name in existing_columns:
-            # Get the index of the field
-            field_index = existing_columns.index(field_name)
-
-            # Check if the values are different
-            if existing_record[field_index] != value:
-                # Update the value in the existing record
-                existing_record[field_index] = value
-                logger.info(f"Updated {field_name} to {value} in existing record.")
+    # Get the SHA256 value from metadata
+    sha256_value = metadata.get("SHA256", "")
 
     # Update the database record
     update_query = f"""
@@ -410,21 +392,41 @@ def update_metadata_in_database(
             SHA1 = %s,
             SHA256 = %s
         WHERE SHA256 = %s
-        """
+    """
     try:
         cursor.execute(
             update_query,
-            tuple(
-                existing_record + [existing_record[existing_columns.index("SHA256")]]
+            (
+                metadata.get("File Name", ""),
+                metadata.get("Directory", ""),
+                metadata.get("File Size", ""),
+                metadata.get("Created at", ""),
+                metadata.get("Positive prompt", ""),
+                metadata.get("Negative prompt", ""),
+                metadata.get("Steps", ""),
+                metadata.get("Sampler", ""),
+                metadata.get("CFG scale", ""),
+                metadata.get("Seed", ""),
+                metadata.get("Size", ""),
+                metadata.get("Model hash", ""),
+                metadata.get("Model", ""),
+                metadata.get("Seed resize from", ""),
+                metadata.get("Denoising strength", ""),
+                metadata.get("Version", ""),
+                metadata.get("NSFWProbability", ""),
+                metadata.get("MD5", ""),
+                metadata.get("SHA1", ""),
+                sha256_value,
+                sha256_value,  # Use SHA256 as the WHERE condition
             ),
         )
         conn.commit()
         extraction_logger.info(
             f"Metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} has been updated in the database."
         )
-    except:
-        extraction_logger.error(
-            f"Failed to update metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} in the database."
+    except Exception as e:
+        logger.error(
+            f"Failed to update metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} in the database. Error: {e}"
         )
 
 
@@ -493,8 +495,6 @@ def start_metadata_extractor():
                             update_metadata_in_database(
                                 conn,
                                 table_name,
-                                columns,
-                                extracted_metadata,
                                 logger,
                                 extraction_logger,
                             )
