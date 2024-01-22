@@ -336,9 +336,6 @@ def update_metadata_in_database(
 ):
     cursor = conn.cursor()
 
-    # Get the SHA256 value from metadata
-    sha256_value = metadata.get("SHA256", "")
-
     # Update the database record
     update_query = f"""
         UPDATE {table_name}
@@ -388,8 +385,8 @@ def update_metadata_in_database(
                 metadata.get("NSFWProbability", ""),
                 metadata.get("MD5", ""),
                 metadata.get("SHA1", ""),
-                sha256_value,
-                sha256_value,  # Use SHA256 as the WHERE condition
+                metadata.get("SHA256", ""),
+                metadata.get("SHA256", ""),  # Use SHA256 as the WHERE condition
             ),
         )
         conn.commit()
@@ -483,6 +480,10 @@ def start_metadata_extractor():
                     # Check if metadata already exists in database
                     exists = check_if_metadata_exists(
                         conn, extracted_metadata, table_name, logger
+                    )
+
+                    extraction_logger.info(
+                        f"Metadata already exists in database: {exists}"
                     )
 
                     if exists:
