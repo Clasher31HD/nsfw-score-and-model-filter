@@ -165,10 +165,15 @@ def extract_metadata_from_parameter(metadata, image_path, nsfw, logger, nsfw_log
         # Split the content after "Steps:" into key-value pairs
         content_segments = steps_section.split(", ")
         for segment in content_segments:
+            logger.debug(f"Key-value pair: {segment}")
             key_value = segment.split(": ", 1)
             if len(key_value) == 2:
                 key, value = key_value[0], key_value[1]
                 metadata_dict[key] = value
+            else:
+                logger.warning(
+                    f"Invalid key-value pair: {segment}. Ignoring..."
+                )
     elif steps_index != -1:
         positive_prompt = metadata[:steps_index].strip()
         metadata_dict["Positive prompt"] = positive_prompt
@@ -207,7 +212,7 @@ def update_database_table(conn, table_name, logger):
     cursor = conn.cursor()
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
     table_exists = cursor.fetchone()
-    if not table_exists:
+    if table_exists is None:
         # Create the table if it doesn't exist
         create_table_query = f"""
             CREATE TABLE {table_name} (
@@ -456,10 +461,8 @@ def start_metadata_extractor():
         # Create a MySQL database and table if it doesn't exist
         conn = connect_database(host, user, password, database_name, logger)
 
-        # Update the database table
+        # Update the database table and columns
         update_database_table(conn, table_name, logger)
-
-        # Update the database columns
         update_database_columns(conn, columns, table_name, logger)
 
         # Loop through the images in the folder
@@ -509,7 +512,6 @@ def start_metadata_extractor():
                         )
                     else:
                         logger.error(f"Row count is {row_count}. Expected 0 or 1.")
-                        
 
         # Close the database connection
         conn.close()
