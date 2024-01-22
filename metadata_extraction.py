@@ -204,18 +204,15 @@ def connect_database(host, user, password, database_name, table_name, logger):
         conn = mysql.connector.connect(
             host=host, user=user, password=password, database=database_name
         )
-        cursor = conn.cursor()
+        return conn
     except mysql.connector.Error as e:
         logger.error(f"Failed to connect to the database: {e}")
         return None
 
-    # Check if the table exists
-    cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
-    return conn
-
 
 def update_database_table(conn, table_name, logger):
     cursor = conn.cursor()
+    cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
     table_exists = cursor.fetchone()
     if not table_exists:
         # Create the table if it doesn't exist
