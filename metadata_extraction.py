@@ -267,7 +267,7 @@ def update_database_columns(conn, columns, table_name, logger):
                 logger.error(f"Error adding column {column}: {e}")
 
 
-def check_if_metadata_exists(conn, metadata, table_name, logger):
+def check_if_metadata_exists(conn, metadata, table_name, extraction_logger):
     cursor = conn.cursor()
 
     # Check if the data already exists in the database
@@ -278,10 +278,10 @@ def check_if_metadata_exists(conn, metadata, table_name, logger):
     cursor.execute(query, (metadata.get("SHA256", ""),))
     row_count = cursor.fetchone()
     if row_count:
-        logger.info(f"Number of rows with the same SHA256 value: {row_count}")
+        extraction_logger.info(f"Number of rows with the same SHA256 value: {row_count}")
     else:
         row_count = 0
-        logger.info("No existing record found.")
+        extraction_logger.info("No existing record found.")
 
     return row_count
 
@@ -492,7 +492,7 @@ def start_metadata_extractor():
 
                     # Check if metadata already exists in database
                     row_count = check_if_metadata_exists(
-                        conn, extracted_metadata, table_name, logger
+                        conn, extracted_metadata, table_name, extraction_logger
                     )
 
                     extraction_logger.info(
