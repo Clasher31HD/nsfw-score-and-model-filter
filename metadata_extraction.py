@@ -312,7 +312,9 @@ def check_if_metadata_exists(conn, metadata, table_name, logger):
 
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
-def insert_metadata_into_database(conn, table_name, metadata, logger, extraction_logger):
+def insert_metadata_into_database(
+    conn, table_name, metadata, logger, extraction_logger
+):
     cursor = conn.cursor()
     try:
         cursor.execute(
@@ -358,12 +360,13 @@ def insert_metadata_into_database(conn, table_name, metadata, logger, extraction
 
 def update_metadata_in_database(
     conn,
-    cursor,
     metadata,
     table_name,
     logger,
     extraction_logger,
 ):
+    cursor = conn.cursor()
+
     # Get the SHA256 value from metadata
     sha256_value = metadata.get("SHA256", "")
 
@@ -459,9 +462,7 @@ def start_metadata_extractor():
             image_folder = os.path.join(image_folder, formatted_yesterday)
 
         # Create a MySQL database and table if it doesn't exist
-        conn = connect_database(
-            host, user, password, database_name, table_name, logger
-        )
+        conn = connect_database(host, user, password, database_name, table_name, logger)
 
         # Update the database table
         update_database_table(conn, table_name, logger)
@@ -494,6 +495,7 @@ def start_metadata_extractor():
                             # Update metadata in database
                             update_metadata_in_database(
                                 conn,
+                                metadata,
                                 table_name,
                                 logger,
                                 extraction_logger,
