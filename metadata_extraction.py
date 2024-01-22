@@ -207,7 +207,7 @@ def connect_database(host, user, password, database_name, table_name, logger):
         cursor = conn.cursor()
     except mysql.connector.Error as e:
         logger.error(f"Failed to connect to the database: {e}")
-        return None, []
+        return None
 
     # Check if the table exists
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
