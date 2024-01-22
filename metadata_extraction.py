@@ -460,17 +460,26 @@ def start_metadata_extractor():
 
         # Create a MySQL database and table if it doesn't exist
         conn = connect_database(host, user, password, database_name, logger)
+        logger.debug(f"Connected to MySQL database: {database_name}")
 
         # Update the database table and columns
         update_database_table(conn, table_name, logger)
+        logger.debug(f"Updated MySQL database table: {table_name}")
+
+        # Update the database columns
         update_database_columns(conn, columns, table_name, logger)
+        logger.debug(f"Updated MySQL database columns")
 
         # Loop through the images in the folder
-        for root, files in os.walk(image_folder):
+        for root, dirs, files in os.walk(image_folder):
             for filename in files:
                 if filename.endswith(".png"):
                     image_path = os.path.join(root, filename)
+                    logger.debug(f"Found image file: {image_path}")
                     metadata = get_image_metadata(image_path, logger)
+                    logger.debug(f"Got metadata from image file: {image_path}")
+
+                    # Extract metadata from parameter
                     extracted_metadata = extract_metadata_from_parameter(
                         metadata,
                         image_path,
