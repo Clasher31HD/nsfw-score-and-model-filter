@@ -499,7 +499,6 @@ def start_metadata_extractor():
                         insert_metadata_into_database(
                             conn,
                             table_name,
-                            columns,
                             extracted_metadata,
                             logger,
                             extraction_logger,
