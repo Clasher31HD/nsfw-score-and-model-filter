@@ -36,10 +36,12 @@ def setup_logger():
             directory_path, f"{year}-{month}-{day}-Extraction.log"
         )
         nsfw_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-NSFW.log")
+        debug_log_file = os.path.join(directory_path, f"{year}-{month}-{day}-Debug.log")
     else:
         logger_log_file = os.path.join(logs_directory, "Info.log")
         extraction_log_file = os.path.join(logs_directory, "Extraction.log")
         nsfw_log_file = os.path.join(logs_directory, "NSFW.log")
+        debuglog_file = os.path.join(logs_directory, "Debug.log")
 
     # Standard Logger
     logger_file_handler = logging.FileHandler(logger_log_file)
@@ -65,7 +67,15 @@ def setup_logger():
     nsfw_logger.setLevel(level)
     nsfw_logger.addHandler(nsfw_file_handler)
 
-    return logger, extraction_logger, nsfw_logger
+    # Debug Logger
+    debug_file_handler = logging.FileHandler(debug_log_file)
+    debug_file_handler.setFormatter(formatter)
+    debug_file_handler.setLevel(level)
+    debug_logger = logging.getLogger("debug")
+    debug_logger.setLevel(level)
+    debug_logger.addHandler(debug_file_handler)
+
+    return logger, extraction_logger, nsfw_logger, debug_logger
 
 
 # Function to extract metadata categories and subcategories
@@ -267,7 +277,7 @@ def update_database_columns(conn, columns, table_name, logger):
                 logger.error(f"Error adding column {column}: {e}")
 
 
-def check_if_metadata_exists(conn, metadata, table_name, extraction_logger):
+def check_if_metadata_exists(conn, metadata, table_name, debug_logger):
     cursor = conn.cursor()
 
     # Check if the data already exists in the database
@@ -278,10 +288,10 @@ def check_if_metadata_exists(conn, metadata, table_name, extraction_logger):
     cursor.execute(query, (metadata.get("SHA256", ""),))
     row_count = cursor.fetchone()
     if row_count:
-        extraction_logger.info(f"Number of rows with the same SHA256 value: {row_count}")
+        debug_logger.info(f"Number of rows with the same SHA256 value: {row_count}")
     else:
         row_count = 0
-        extraction_logger.info("No existing record found.")
+        debug_logger.info("No existing record found.")
 
     return row_count
 
@@ -407,7 +417,7 @@ def update_metadata_in_database(
 
 def start_metadata_extractor():
     start_time = datetime.now()
-    logger, extraction_logger, nsfw_logger = setup_logger()
+    logger, extraction_logger, nsfw_logger, debug_logger = setup_logger()
     try:
         try:
             logger.info("Script started.")
@@ -492,7 +502,7 @@ def start_metadata_extractor():
 
                     # Check if metadata already exists in database
                     row_count = check_if_metadata_exists(
-                        conn, extracted_metadata, table_name, extraction_logger
+                        conn, extracted_metadata, table_name, debug_logger
                     )
 
                     extraction_logger.info(
