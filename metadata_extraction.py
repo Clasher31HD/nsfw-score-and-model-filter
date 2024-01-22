@@ -192,7 +192,7 @@ def extract_metadata_from_parameter(metadata, image_path, nsfw, logger, nsfw_log
 
 
 # Function to create a MySQL database and table
-def connect_database(host, user, password, database_name, table_name, logger):
+def connect_database(host, user, password, database_name, logger):
     try:
         conn = mysql.connector.connect(
             host=host, user=user, password=password, database=database_name
@@ -238,11 +238,9 @@ def update_database_table(conn, table_name, logger):
         try:
             cursor.execute(create_table_query)
             conn.commit()
+            logger.info(f"Table {table_name} created successfully.")
         except mysql.connector.Error as e:
             logger.error(f"Table creation could not be executed: {e}")
-            return None, []
-
-        logger.info(f"Table {table_name} created successfully.")
 
 
 def update_database_columns(conn, columns, table_name, logger):
@@ -451,7 +449,7 @@ def start_metadata_extractor():
         ]
 
         # Create a MySQL database and table if it doesn't exist
-        conn = connect_database(host, user, password, database_name, table_name, logger)
+        conn = connect_database(host, user, password, database_name, logger)
 
         # Update the database table
         update_database_table(conn, table_name, logger)
