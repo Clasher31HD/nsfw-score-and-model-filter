@@ -141,7 +141,7 @@ def extract_metadata_from_parameter(metadata_str, image_path, nsfw, logger, nsfw
     metadata_dict["File Name"] = file_name
     metadata_dict["Directory"] = directory
     metadata_dict["File Size"] = file_size
-    metadata_dict["Created At"] = creation_time
+    metadata_dict["Created At"] = creation_time.strftime("%Y-%m-%d %H:%M:%S")
 
     # Split by the first occurrence of "Negative prompt" or "Steps"
     negative_prompt_index = metadata_str.find("Negative prompt:")
@@ -286,6 +286,7 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, logge
     '''
     cursor.execute(query, (metadata.get('SHA256', ''),))
     existing_record = list(cursor.fetchone())
+    logger.info(f"Existing record: {existing_record}")
 
     if existing_record is None:
         logger.error(f"No existing record found for {table}.")
@@ -303,6 +304,13 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, logge
                 if existing_record[field_index] != value:
                     # Update the value in the existing record
                     existing_record[field_index] = value
+                    logger.info(f"Updated {field_name} to {value} in existing record.")
+
+        if 'SHA256' in existing_columns:
+            sha256_index = existing_columns.index('SHA256')
+            # Ensure the index is valid before accessing it
+            if sha256_index < len(existing_record):
+                existing_record[sha256_index] = metadata.get('SHA256', '')
 
         # Update the database record
         update_query = f'''
@@ -330,14 +338,12 @@ def insert_metadata_into_database(conn, table, existing_columns, metadata, logge
             SHA256 = %s
         WHERE SHA256 = %s
         '''
+        logger.info(f"Update Query: {update_query}")
         try:
             cursor.execute(update_query, tuple(existing_record + [existing_record[existing_columns.index('SHA256')]]))
             conn.commit()
         except:
             extraction_logger.error(f"Failed to update metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} in the database.")
-            extraction_logger.error(f"{cursor.status}")
-            extraction_logger.error(f"{cursor.description}")
-            extraction_logger.error(f"{cursor.diagnostics}")
 
         extraction_logger.info(f"Metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} has been updated in the database.")
     else:
