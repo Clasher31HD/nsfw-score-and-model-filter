@@ -272,9 +272,13 @@ def check_if_metadata_exists(conn, metadata, table_name, logger):
     """
     cursor.execute(query, (metadata.get("SHA256", ""),))
     existing_record = cursor.fetchone()
-    logger.info(f"Existing record: {existing_record}")
-    row_count = cursor.fetchone()[0]
-    logger.info(f"Number of rows with the same SHA256 value: {row_count}")
+    if existing_record:
+        logger.info(f"Existing record: {existing_record}")
+        row_count = existing_record[0]  # Assuming the count is in the first column
+        logger.info(f"Number of rows with the same SHA256 value: {row_count}")
+    else:
+        row_count = 0
+        logger.info("No existing record found.")
 
     return row_count
 
