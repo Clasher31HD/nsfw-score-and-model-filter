@@ -271,11 +271,12 @@ def check_if_metadata_exists(conn, metadata, table_name, logger):
     WHERE SHA256 = %s
     """
     cursor.execute(query, (metadata.get("SHA256", ""),))
-    existing_record = list(cursor.fetchone())
+    existing_record = cursor.fetchone()
     logger.info(f"Existing record: {existing_record}")
+    row_count = cursor.fetchone()[0]
+    logger.info(f"Number of rows with the same SHA256 value: {row_count}")
 
-    if existing_record:
-        return existing_record
+    return row_count
 
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
@@ -476,15 +477,24 @@ def start_metadata_extractor():
                     )
 
                     # Check if metadata already exists in database
-                    exists = check_if_metadata_exists(
+                    row_count = check_if_metadata_exists(
                         conn, extracted_metadata, table_name, logger
                     )
 
                     extraction_logger.info(
-                        f"Metadata already exists in database: {exists}"
+                        f"Metadata already exists {row_count} times in database"
                     )
 
-                    if exists:
+                    if row_count == 0:
+                        # Insert metadata into database
+                        insert_metadata_into_database(
+                            conn,
+                            extracted_metadata,
+                            table_name,
+                            logger,
+                            extraction_logger,
+                        )
+                    elif row_count == 1:
                         # Update metadata in database
                         update_metadata_in_database(
                             conn,
@@ -494,14 +504,8 @@ def start_metadata_extractor():
                             extraction_logger,
                         )
                     else:
-                        # Insert metadata into database
-                        insert_metadata_into_database(
-                            conn,
-                            extracted_metadata,
-                            table_name,
-                            logger,
-                            extraction_logger,
-                        )
+                        logger.error(f"Row count is {row_count}. Expected 0 or 1.")
+                        
 
         # Close the database connection
         conn.close()
