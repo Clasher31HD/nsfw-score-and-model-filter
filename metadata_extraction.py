@@ -298,16 +298,16 @@ def update_database_columns(conn, table_name, logger):
     return columns
 
 
-def check_if_metadata_exists(conn, metadata, table, logger):
+def check_if_metadata_exists(conn, metadata, table_name, logger):
     cursor = conn.cursor()
 
     if metadata is None:
-        logger.error(f"No metadata found for {table}.")
+        logger.error(f"No metadata found for {table_name}.")
         return
 
     # Check if the data already exists in the database
     query = f"""
-    SELECT * FROM {table}
+    SELECT * FROM {table_name}
     WHERE SHA256 = %s
     """
     cursor.execute(query, (metadata.get("SHA256", ""),))
@@ -319,12 +319,12 @@ def check_if_metadata_exists(conn, metadata, table, logger):
 
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
-def insert_metadata_into_database(conn, table, metadata, logger, extraction_logger):
+def insert_metadata_into_database(conn, table_name, metadata, logger, extraction_logger):
     cursor = conn.cursor()
     try:
         cursor.execute(
             f"""
-        INSERT INTO {table} (
+        INSERT INTO {table_name} (
             FileName, Directory, FileSize, CreatedAt, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
             ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFWProbability, MD5, SHA1, SHA256
         )
@@ -367,7 +367,7 @@ def update_metadata_in_database(
     conn,
     cursor,
     metadata,
-    table,
+    table_name,
     existing_columns,
     existing_record,
     logger,
@@ -394,7 +394,7 @@ def update_metadata_in_database(
 
     # Update the database record
     update_query = f"""
-        UPDATE {table}
+        UPDATE {table_name}
         SET
             FileName = %s,
             Directory = %s,
@@ -464,7 +464,7 @@ def start_metadata_extractor():
             image_folder = os.path.join(image_folder, formatted_yesterday)
 
         # Create a MySQL database and table if it doesn't exist
-        conn, existing_columns = connect_database(
+        conn = connect_database(
             host, user, password, database_name, table_name, logger
         )
 
@@ -492,10 +492,11 @@ def start_metadata_extractor():
 
                         # Check if metadata already exists in database
                         exists = check_if_metadata_exists(
-                            conn, table_name, columns, extracted_metadata, logger
+                            conn, metadata, table_name, logger
                         )
 
                         if exists:
+                            # Update metadata in database
                             update_metadata_in_database(
                                 conn,
                                 table_name,
@@ -505,6 +506,7 @@ def start_metadata_extractor():
                                 extraction_logger,
                             )
                         else:
+                            # Insert metadata into database
                             insert_metadata_into_database(
                                 conn,
                                 table_name,
