@@ -1,5 +1,6 @@
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 from PIL import Image
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -18,41 +19,66 @@ def read_configuration():
         raise ValueError(f"Error parsing YAML in yts_config.yml: {e}")
 
 
-def setup_logger():
-    # General Settings
-    config = read_configuration()
+def create_logger(
+    name, log_file, logs_directory, level=logging.DEBUG, max_log_size=10 * 1024 * 1024
+):
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
+    file_handler = RotatingFileHandler(log_file, maxBytes=max_log_size, backupCount=5)
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(level)
+
+    all_file_handler = RotatingFileHandler(
+        os.path.join(logs_directory, f"YTS{name.capitalize()}.log"),
+        maxBytes=max_log_size,
+        backupCount=5,
+    )
+    all_file_handler.setFormatter(formatter)
+    all_file_handler.setLevel(level)
+
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    logger.addHandler(file_handler)
+    logger.addHandler(all_file_handler)
+
+    return logger
+
+
+def configure_loggers():
+    config = read_configuration()
     level = config["level"]
     logs_directory = config["logs_directory"]
-    log_by_day = config.get("log_by_day", True)
+    max_log_size = 10 * 1024 * 1024  # 10MB
+    year = str(datetime.now().strftime("%Y"))
+    month = str(datetime.now().strftime("%m"))
+    day = str(datetime.now().strftime("%d"))
+    date = f"{year}-{month}-{day}"
+    directory_path = os.path.join(logs_directory, year, month, day)
+    os.makedirs(directory_path, exist_ok=True)
 
-    # Create directory based on log_by_day
-    if log_by_day:
-        today = datetime.now().strftime("%Y-%m-%d")
-        directory_path = os.path.join(logs_directory, today)
-        os.makedirs(directory_path, exist_ok=True)
-        log_files = [
-            f"{today}-Info.log",
-            f"{today}-Extraction.log",
-            f"{today}-NSFW.log",
-            f"{today}-Debug.log",
-        ]
-    else:
-        log_files = ["Info.log", "Extraction.log", "NSFW.log", "Debug.log"]
+    info_logger = create_logger(
+        "info",
+        os.path.join(directory_path, f"{date}-ExtractorInfo.log"),
+        logs_directory,
+        level,
+        max_log_size,
+    )
+    extraction_logger = create_logger(
+        "extraction",
+        os.path.join(directory_path, f"{date}-ExtractorExtraction.log"),
+        logs_directory,
+        level,
+        max_log_size,
+    )
+    debug_logger = create_logger(
+        "debug",
+        os.path.join(directory_path, f"{date}-ExtractorDebug.log"),
+        logs_directory,
+        level,
+        max_log_size,
+    )
 
-    # Initialize loggers
-    loggers = {}
-    for log_file in log_files:
-        logger_name = log_file.split("-")[1].split(".")[0].lower()
-        file_handler = logging.FileHandler(os.path.join(directory_path, log_file))
-        file_handler.setFormatter(formatter)
-        file_handler.setLevel(level)
-        logger = logging.getLogger(logger_name)
-        logger.setLevel(level)
-        logger.addHandler(file_handler)
-        loggers[logger_name] = logger
-
-    return loggers.values()
+    return info_logger, extraction_logger, debug_logger
 
 
 # Function to extract metadata categories and subcategories
@@ -233,7 +259,7 @@ def update_database_table(conn, table_name, logger):
             logger.error(f"Table creation could not be executed: {e}")
 
 
-def update_database_columns(conn, columns, table_name, logger):
+def update_database_columns(conn, columns, table_name, info_logger):
     # Check and add columns if they do not exist
     cursor = conn.cursor()
 
@@ -247,9 +273,9 @@ def update_database_columns(conn, columns, table_name, logger):
             try:
                 cursor.execute(add_column_query)
                 conn.commit()
-                logger.info(f"Column {column} added successfully.")
+                info_logger.info(f"Column {column} added successfully.")
             except mysql.connector.Error as e:
-                logger.error(f"Error adding column {column}: {e}")
+                info_logger.error(f"Error adding column {column}: {e}")
 
 
 def check_if_metadata_exists(conn, metadata, table_name, debug_logger):
@@ -273,7 +299,7 @@ def check_if_metadata_exists(conn, metadata, table_name, debug_logger):
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
 def insert_metadata_into_database(
-    conn, metadata, table_name, logger, extraction_logger
+    conn, metadata, table_name, info_logger, extraction_logger
 ):
     cursor = conn.cursor()
     try:
@@ -313,7 +339,7 @@ def insert_metadata_into_database(
             f"Metadata from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} extracted and added to the database."
         )
     except Exception as e:
-        logger.error(
+        info_logger.error(
             f"Error while inserting metadata into database from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')}. Error: {e}"
         )
 
@@ -392,10 +418,10 @@ def update_metadata_in_database(
 
 def start_metadata_extractor():
     start_time = datetime.now()
-    logger, extraction_logger, nsfw_logger, debug_logger = setup_logger()
+    info_logger, extraction_logger, debug_logger = configure_loggers()
     try:
         try:
-            logger.info("Script started.")
+            info_logger.info("Script started.")
             config = read_configuration()
             host = config["host"]
             user = config["user"]
@@ -406,7 +432,7 @@ def start_metadata_extractor():
             use_yesterday = config.get("use_yesterday", False)
             nsfw = config.get("nsfw_probability", True)
 
-            logger.info(
+            info_logger.info(
                 f"Host: {host}, User: {user}, Password: {password}, Database: {database_name}, Table: {table_name}, Image Folder: {image_folder}, Use Yesterday: {use_yesterday}, NSFW: {nsfw}"
             )
         except (KeyError, ValueError) as e:
@@ -442,16 +468,16 @@ def start_metadata_extractor():
         ]
 
         # Create a MySQL database and table if it doesn't exist
-        conn = connect_database(host, user, password, database_name, logger)
-        logger.debug(f"Connected to MySQL database: {database_name}")
+        conn = connect_database(host, user, password, database_name, info_logger)
+        info_logger.debug(f"Connected to MySQL database: {database_name}")
 
         # Update the database table and columns
-        update_database_table(conn, table_name, logger)
-        logger.debug(f"Updated MySQL database table: {table_name}")
+        update_database_table(conn, table_name, info_logger)
+        info_logger.debug(f"Updated MySQL database table: {table_name}")
 
         # Update the database columns
-        update_database_columns(conn, columns, table_name, logger)
-        logger.debug(f"Updated MySQL database columns")
+        update_database_columns(conn, columns, table_name, info_logger)
+        info_logger.debug(f"Updated MySQL database columns")
 
         inserted_count = 0
         updated_count = 0
@@ -460,20 +486,20 @@ def start_metadata_extractor():
             for filename in files:
                 if filename.endswith(".png"):
                     image_path = os.path.join(root, filename)
-                    logger.debug(f"Found image file: {image_path}")
+                    debug_logger.debug(f"Found image file: {image_path}")
                     metadata = get_image_metadata(image_path, logger)
-                    logger.debug(f"Got metadata from image file: {image_path}")
+                    debug_logger.debug(f"Got metadata from image file: {image_path}")
 
                     # Extract metadata from parameter
                     extracted_metadata = extract_metadata_from_parameter(
                         metadata,
                         image_path,
                         nsfw,
-                        logger,
-                        nsfw_logger,
+                        info_logger,
+                        debug_logger,
                     )
 
-                    extraction_logger.info(
+                    debug_logger.info(
                         f"Extracted metadata from {image_path} is {extracted_metadata}"
                     )
 
@@ -482,7 +508,7 @@ def start_metadata_extractor():
                         conn, extracted_metadata, table_name, debug_logger
                     )
 
-                    extraction_logger.info(
+                    debug_logger.info(
                         f"Metadata already exists {row_count} times in database"
                     )
 
@@ -492,7 +518,7 @@ def start_metadata_extractor():
                             conn,
                             extracted_metadata,
                             table_name,
-                            logger,
+                            debug_logger,
                             extraction_logger,
                         )
                         inserted_count += 1
@@ -502,23 +528,23 @@ def start_metadata_extractor():
                             conn,
                             extracted_metadata,
                             table_name,
-                            logger,
+                            info_logger,
                             extraction_logger,
                         )
                         updated_count += 1
                     else:
-                        logger.error(f"Row count is {row_count}. Expected 0 or 1.")
+                        info_logger.error(f"Row count is {row_count}. Expected 0 or 1.")
 
         # Close the database connection
         conn.close()
         total_count = str(inserted_count + updated_count)
         end_time = datetime.now()
         time_difference = str(end_time - start_time)
-        logger.info(
+        info_logger.info(
             f"Script finished. Duration: {time_difference}, Total count: {total_count} ({str(inserted_count)} inserted, {str(updated_count)} updated)."
         )
     except Exception as e:
-        logger.error("An unexpected error occurred: %s", str(e))
+        info_logger.error("An unexpected error occurred: %s", str(e))
 
 
 if __name__ == "__main__":
