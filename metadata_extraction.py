@@ -487,7 +487,7 @@ def start_metadata_extractor():
         inserted_count = 0
         updated_count = 0
         # Loop through the images in the folder
-        for root, files in os.walk(image_folder):
+        for root, dirs, files in os.walk(image_folder):
             for filename in files:
                 if filename.endswith(".png"):
                     image_path = os.path.join(root, filename)
