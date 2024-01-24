@@ -99,52 +99,6 @@ def extract_metadata_from_parameter(
 ):
     metadata_dict = {}
 
-    if nsfw:
-        import opennsfw2 as n2
-
-        try:
-            img = Image.open(image_path)
-            img.thumbnail((512, 512))
-
-            nsfw_probability = n2.predict_image(image_path)
-            if nsfw_probability is None:
-                info_logger.error(f"NSFW Probability is None.")
-                return {}
-
-            debug_logger.info(
-                f"NSFWProbability for image '{os.path.basename(image_path)}' is {nsfw_probability}"
-            )
-            metadata_dict["NSFWProbability"] = nsfw_probability
-        except OSError as e:
-            debug_logger.warning(
-                f"Skipping image '{os.path.basename(image_path)}' due to an error: {str(e)}"
-            )
-    else:
-        nsfw_probability = ""
-        metadata_dict["NSFWProbability"] = nsfw_probability
-        debug_logger.info("NSFW is off so no nsfw calculation")
-
-    hashermd5 = hashlib.md5()
-    hashersha1 = hashlib.sha1()
-    hashersha256 = hashlib.sha256()
-
-    # Get Hash values
-    with open(image_path, "rb") as file:
-        while True:
-            chunk = file.read(4096)  # Read in 4KB chunks
-            if not chunk:
-                break
-            hashermd5.update(chunk)
-            hashersha1.update(chunk)
-            hashersha256.update(chunk)
-
-    hash_md5 = hashermd5.hexdigest()
-    hash_sha1 = hashersha1.hexdigest()
-    hash_sha256 = hashersha256.hexdigest()
-    metadata_dict["MD5"] = hash_md5
-    metadata_dict["SHA1"] = hash_sha1
-    metadata_dict["SHA256"] = hash_sha256
-
     # Add filename, directory, and file size to the metadata
     file_name = os.path.basename(image_path).strip(".png")
     directory = os.path.basename(os.path.dirname(image_path))
@@ -204,6 +158,53 @@ def extract_metadata_from_parameter(
     else:
         # If neither "Negative prompt" nor "Steps" is found, consider the entire section as "Positive prompt"
         metadata_dict["PositivePrompt"] = metadata
+
+    # Add NSFW values
+    if nsfw:
+        import opennsfw2 as n2
+
+        try:
+            img = Image.open(image_path)
+            img.thumbnail((512, 512))
+
+            nsfw_probability = n2.predict_image(image_path)
+            if nsfw_probability is None:
+                info_logger.error(f"NSFW Probability is None.")
+                return {}
+
+            debug_logger.info(
+                f"NSFWProbability for image '{os.path.basename(image_path)}' is {nsfw_probability}"
+            )
+            metadata_dict["NSFWProbability"] = nsfw_probability
+        except OSError as e:
+            debug_logger.warning(
+                f"Skipping image '{os.path.basename(image_path)}' due to an error: {str(e)}"
+            )
+    else:
+        nsfw_probability = ""
+        metadata_dict["NSFWProbability"] = nsfw_probability
+        debug_logger.info("NSFW is off so no nsfw calculation")
+
+    hashermd5 = hashlib.md5()
+    hashersha1 = hashlib.sha1()
+    hashersha256 = hashlib.sha256()
+
+    # Get Hash values
+    with open(image_path, "rb") as file:
+        while True:
+            chunk = file.read(4096)  # Read in 4KB chunks
+            if not chunk:
+                break
+            hashermd5.update(chunk)
+            hashersha1.update(chunk)
+            hashersha256.update(chunk)
+
+    hash_md5 = hashermd5.hexdigest()
+    hash_sha1 = hashersha1.hexdigest()
+    hash_sha256 = hashersha256.hexdigest()
+    metadata_dict["MD5"] = hash_md5
+    metadata_dict["SHA1"] = hash_sha1
+    metadata_dict["SHA256"] = hash_sha256
 
     if metadata_dict is not None:
         return metadata_dict
@@ -309,7 +310,9 @@ def check_if_metadata_equal(
             existing_metadata = {columns[i]: result[i] for i in range(len(columns))}
 
             for key, value in metadata.items():
-                debug_logger.info(f"{key} : {value}  |  {key} : {existing_metadata.get(key, 'N/A')}")
+                debug_logger.info(
+                    f"{key} : {value}  |  {key} : {existing_metadata.get(key, 'N/A')}"
+                )
 
             # Check if the metadata is equal
             if metadata == existing_metadata:
@@ -499,7 +502,7 @@ def start_metadata_extractor():
                         # Check if metadata in database is the same as the extracted metadata
                         equal = check_if_metadata_equal(
                             conn,
-                            extracted_metadata,
+                            metadata,
                             table_name,
                             columns,
                             info_logger,
