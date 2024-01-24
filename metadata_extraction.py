@@ -308,6 +308,9 @@ def check_if_metadata_equal(
         if result:
             existing_metadata = {columns[i]: result[i] for i in range(len(columns))}
 
+            for key, value in metadata.items():
+                debug_logger.info(f"{key} : {value}  |  {key} : {existing_metadata.get(key, 'N/A')}")
+
             # Check if the metadata is equal
             if metadata == existing_metadata:
                 debug_logger.info("Metadata is already in the database and is equal.")
