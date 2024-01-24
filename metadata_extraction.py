@@ -248,7 +248,7 @@ def update_database_table(conn, table_name, columns, info_logger):
             cursor.close()
 
 
-def update_database_columns(conn, columns, table_name, info_logger):
+def update_database_columns(conn, table_name, columns, info_logger):
     # Check and add columns if they do not exist
     cursor = conn.cursor()
 
@@ -443,10 +443,10 @@ def start_metadata_extractor():
         conn = connect_database(host, user, password, database_name, info_logger)
 
         # Update the database table and columns
-        update_database_table(conn, table_name, info_logger)
+        update_database_table(conn, table_name, columns, info_logger)
 
         # Update the database columns
-        update_database_columns(conn, columns, table_name, info_logger)
+        update_database_columns(conn, table_name, columns, info_logger)
 
         inserted_count = 0
         updated_count = 0
@@ -474,7 +474,7 @@ def start_metadata_extractor():
 
                     # Check if metadata already exists in database
                     row_count = check_if_metadata_exists(
-                        conn, extracted_metadata, table_name, debug_logger
+                        conn, extracted_metadata, table_name, columns, debug_logger
                     )
 
                     debug_logger.info(
@@ -487,6 +487,7 @@ def start_metadata_extractor():
                             conn,
                             extracted_metadata,
                             table_name,
+                            columns,
                             info_logger,
                             extraction_logger,
                         )
@@ -494,7 +495,7 @@ def start_metadata_extractor():
                     elif row_count == 1:
                         # Check if metadata in database is the same as the extracted metadata
                         equal = check_if_metadata_equal(
-                            conn, extracted_metadata, table_name, debug_logger
+                            conn, extracted_metadata, table_name, columns, debug_logger
                         )
 
                         # Update metadata in database
@@ -503,6 +504,7 @@ def start_metadata_extractor():
                                 conn,
                                 extracted_metadata,
                                 table_name,
+                                columns,
                                 info_logger,
                                 extraction_logger,
                             )
