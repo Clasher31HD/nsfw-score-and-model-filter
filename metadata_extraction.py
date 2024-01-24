@@ -215,10 +215,12 @@ def connect_database(host, user, password, database_name, info_logger):
         conn = mysql.connector.connect(
             host=host, user=user, password=password, database=database_name
         )
-        return conn
+        if conn is not None:
+            return conn
+        else:
+            info_logger.error("Failed to connect to the database")
     except mysql.connector.Error as e:
         info_logger.error(f"Failed to connect to the database: {e}")
-        return None
 
 
 def update_database_table(conn, table_name, info_logger):
