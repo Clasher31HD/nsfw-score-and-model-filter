@@ -474,7 +474,7 @@ def start_metadata_extractor():
 
                     # Check if metadata already exists in database
                     row_count = check_if_metadata_exists(
-                        conn, extracted_metadata, table_name, columns, debug_logger
+                        conn, extracted_metadata, table_name, debug_logger
                     )
 
                     debug_logger.info(
