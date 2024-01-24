@@ -423,6 +423,7 @@ def update_metadata_in_database(
 def start_metadata_extractor():
     start_time = datetime.now()
     info_logger, extraction_logger, debug_logger = configure_loggers()
+    info_logger.debug(f"Loggers successfully initialized")
     try:
         try:
             info_logger.info("Script started.")
