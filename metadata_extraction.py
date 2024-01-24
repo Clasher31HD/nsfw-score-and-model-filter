@@ -216,6 +216,7 @@ def connect_database(host, user, password, database_name, info_logger):
             host=host, user=user, password=password, database=database_name
         )
         if conn is not None:
+            info_logger.debug(f"Connected to MySQL database: {database_name}")
             return conn
         else:
             info_logger.error("Failed to connect to the database")
@@ -474,20 +475,17 @@ def start_metadata_extractor():
 
         # Create a MySQL database and table if it doesn't exist
         conn = connect_database(host, user, password, database_name, info_logger)
-        info_logger.debug(f"Connected to MySQL database: {database_name}")
 
         # Update the database table and columns
         update_database_table(conn, table_name, info_logger)
-        info_logger.debug(f"Updated MySQL database table: {table_name}")
 
         # Update the database columns
         update_database_columns(conn, columns, table_name, info_logger)
-        info_logger.debug(f"Updated MySQL database columns")
 
         inserted_count = 0
         updated_count = 0
         # Loop through the images in the folder
-        for root, dirs, files in os.walk(image_folder):
+        for root, dirs, files in os.walk(image_folder): # Do not delete "dirs"!!!
             for filename in files:
                 if filename.endswith(".png"):
                     image_path = os.path.join(root, filename)
