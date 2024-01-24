@@ -302,6 +302,53 @@ def check_if_metadata_exists(conn, metadata, table_name, debug_logger):
     return row_count
 
 
+def check_if_metadata_equal(conn, metadata, table_name, debug_logger):
+    cursor = conn.cursor()
+
+    # Check if the data already exists in the database
+    query = f"""
+    SELECT * FROM {table_name}
+    WHERE SHA256 = %s
+    """
+    cursor.execute(query, (metadata.get("SHA256", ""),))
+    result = cursor.fetchone()
+
+    if result:
+        existing_metadata = {
+            "File Name": result[1],
+            "Directory": result[2],
+            "File Size": result[3],
+            "Created At": result[4],
+            "Positive Prompt": result[5],
+            "Negative Prompt": result[6],
+            "Steps": result[7],
+            "Sampler": result[8],
+            "CFG Scale": result[9],
+            "Seed": result[10],
+            "Image Size": result[11],
+            "Model Hash": result[12],
+            "Model": result[13],
+            "Seed Resize From": result[14],
+            "Denoising Strength": result[15],
+            "Version": result[16],
+            "NSFW Probability": result[17],
+            "MD5": result[18],
+            "SHA1": result[19],
+            "SHA256": result[20],
+        }
+
+        # Check if the metadata is equal
+        if metadata == existing_metadata:
+            debug_logger.info("Metadata is already in the database and is equal.")
+            return False
+        else:
+            return True
+    else:
+        debug_logger.error("No existing record found for metadata.")
+
+    cursor.close()
+
+
 # Function to insert metadata into the MySQL database if it doesn't already exist
 def insert_metadata_into_database(
     conn, metadata, table_name, info_logger, extraction_logger
@@ -485,7 +532,7 @@ def start_metadata_extractor():
         inserted_count = 0
         updated_count = 0
         # Loop through the images in the folder
-        for root, dirs, files in os.walk(image_folder): # Do not delete "dirs"!!!
+        for root, dirs, files in os.walk(image_folder):  # Do not delete "dirs"!!!
             for filename in files:
                 if filename.endswith(".png"):
                     image_path = os.path.join(root, filename)
@@ -526,15 +573,25 @@ def start_metadata_extractor():
                         )
                         inserted_count += 1
                     elif row_count == 1:
-                        # Update metadata in database
-                        update_metadata_in_database(
-                            conn,
-                            extracted_metadata,
-                            table_name,
-                            info_logger,
-                            extraction_logger,
+                        # Check if metadata in database is the same as the extracted metadata
+                        equal = check_if_metadata_equal(
+                            conn, extracted_metadata, table_name, debug_logger
                         )
-                        updated_count += 1
+
+                        # Update metadata in database
+                        if equal == False:
+                            update_metadata_in_database(
+                                conn,
+                                extracted_metadata,
+                                table_name,
+                                info_logger,
+                                extraction_logger,
+                            )
+                            updated_count += 1
+                        else:
+                            debug_logger.debug(
+                                f"Metadata in database is the same as the extracted metadata."
+                            )
                     else:
                         info_logger.error(f"Row count is {row_count}. Expected 0 or 1.")
 
