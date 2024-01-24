@@ -304,7 +304,7 @@ def check_if_metadata_equal(conn, metadata, table_name, columns, debug_logger):
         result = cursor.fetchone()
 
         if result:
-            existing_metadata = {columns[i]: result[i + 1] for i in range(len(columns))}
+            existing_metadata = {columns[i]: result[i] for i in range(len(columns))}
 
             # Check if the metadata is equal
             if metadata == existing_metadata:
