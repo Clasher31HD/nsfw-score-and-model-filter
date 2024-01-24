@@ -178,13 +178,13 @@ def extract_metadata_from_parameter(metadata, image_path, nsfw, info_logger, deb
         # Split the content after "Steps:" into key-value pairs
         content_segments = steps_section.split(", ")
         for segment in content_segments:
-            logger.debug(f"Key-value pair: {segment}")
+            debug_logger.debug(f"Key-value pair: {segment}")
             key_value = segment.split(": ", 1)
             if len(key_value) == 2:
                 key, value = key_value[0], key_value[1]
                 metadata_dict[key] = value
             else:
-                logger.warning(f"Invalid key-value pair: {segment}. Ignoring...")
+                debug_logger.warning(f"Invalid key-value pair: {segment}. Ignoring...")
     elif steps_index != -1:
         positive_prompt = metadata[:steps_index].strip()
         metadata_dict["Positive prompt"] = positive_prompt
