@@ -150,10 +150,10 @@ def extract_metadata_from_parameter(
     directory = os.path.basename(os.path.dirname(image_path))
     file_size = os.path.getsize(image_path)
     creation_time = datetime.fromtimestamp(os.path.getctime(image_path))
-    metadata_dict["File Name"] = file_name
+    metadata_dict["FileName"] = file_name
     metadata_dict["Directory"] = directory
-    metadata_dict["File Size"] = file_size
-    metadata_dict["Created At"] = creation_time.strftime("%Y-%m-%d %H:%M:%S")
+    metadata_dict["FileSize"] = file_size
+    metadata_dict["CreatedAt"] = creation_time.strftime("%Y-%m-%d %H:%M:%S")
 
     # Split by the first occurrence of "Negative prompt" or "Steps"
     negative_prompt_index = metadata.find("Negative prompt:")
@@ -161,7 +161,7 @@ def extract_metadata_from_parameter(
 
     if negative_prompt_index != -1:
         positive_prompt = metadata[:negative_prompt_index].strip()
-        metadata_dict["Positive prompt"] = positive_prompt
+        metadata_dict["PositivePrompt"] = positive_prompt
 
         remaining_content = metadata[negative_prompt_index:].strip()
         negative_prompt_end = remaining_content.find("Steps:")
@@ -170,9 +170,9 @@ def extract_metadata_from_parameter(
             negative_prompt = remaining_content[
                 len("Negative prompt:") : negative_prompt_end
             ].strip()
-            metadata_dict["Negative prompt"] = negative_prompt
+            metadata_dict["NegativePrompt"] = negative_prompt
         else:
-            metadata_dict["Negative prompt"] = remaining_content
+            metadata_dict["NegativePrompt"] = remaining_content
 
         steps_section = metadata[steps_index:].strip()
         metadata_dict["Steps"] = steps_section
@@ -189,7 +189,7 @@ def extract_metadata_from_parameter(
                 debug_logger.warning(f"Invalid key-value pair: {segment}. Ignoring...")
     elif steps_index != -1:
         positive_prompt = metadata[:steps_index].strip()
-        metadata_dict["Positive prompt"] = positive_prompt
+        metadata_dict["PositivePrompt"] = positive_prompt
 
         steps_section = metadata[steps_index:].strip()
         metadata_dict["Steps"] = steps_section
@@ -203,7 +203,7 @@ def extract_metadata_from_parameter(
                 metadata_dict[key] = value
     else:
         # If neither "Negative prompt" nor "Steps" is found, consider the entire section as "Positive prompt"
-        metadata_dict["Positive prompt"] = metadata
+        metadata_dict["PositivePrompt"] = metadata
 
     if metadata_dict is not None:
         return metadata_dict
