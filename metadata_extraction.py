@@ -82,7 +82,7 @@ def configure_loggers():
 
 
 # Function to extract metadata categories and subcategories
-def get_image_metadata(image_path, logger):
+def get_image_metadata(image_path, info_logger):
     try:
         with Image.open(image_path) as img:
             raw_metadata = img.info
@@ -91,10 +91,10 @@ def get_image_metadata(image_path, logger):
                 if metadata is not None:
                     return metadata
     except Exception as e:
-        logger.error(f"An error occurred: {str(e)}")
+        info_logger.error(f"An error occurred: {str(e)}")
 
 
-def extract_metadata_from_parameter(metadata, image_path, nsfw, logger, nsfw_logger):
+def extract_metadata_from_parameter(metadata, image_path, nsfw, info_logger, debug_logger):
     metadata_dict = {}
 
     if nsfw:
@@ -106,21 +106,21 @@ def extract_metadata_from_parameter(metadata, image_path, nsfw, logger, nsfw_log
 
             nsfw_probability = n2.predict_image(image_path)
             if nsfw_probability is None:
-                logger.error(f"NSFW Probability is None.")
+                info_logger.error(f"NSFW Probability is None.")
                 return {}
 
-            nsfw_logger.info(
+            debug_logger.info(
                 f"NSFWProbability for image '{os.path.basename(image_path)}' is {nsfw_probability}"
             )
             metadata_dict["NSFWProbability"] = nsfw_probability
         except OSError as e:
-            nsfw_logger.warning(
+            debug_logger.warning(
                 f"Skipping image '{os.path.basename(image_path)}' due to an error: {str(e)}"
             )
     else:
         nsfw_probability = ""
         metadata_dict["NSFWProbability"] = nsfw_probability
-        nsfw_logger.info("NSFW is off so no nsfw calculation")
+        debug_logger.info("NSFW is off so no nsfw calculation")
 
     hashermd5 = hashlib.md5()
     hashersha1 = hashlib.sha1()
@@ -208,18 +208,18 @@ def extract_metadata_from_parameter(metadata, image_path, nsfw, logger, nsfw_log
 
 
 # Function to create a MySQL database and table
-def connect_database(host, user, password, database_name, logger):
+def connect_database(host, user, password, database_name, info_logger):
     try:
         conn = mysql.connector.connect(
             host=host, user=user, password=password, database=database_name
         )
         return conn
     except mysql.connector.Error as e:
-        logger.error(f"Failed to connect to the database: {e}")
+        info_logger.error(f"Failed to connect to the database: {e}")
         return None
 
 
-def update_database_table(conn, table_name, logger):
+def update_database_table(conn, table_name, info_logger):
     cursor = conn.cursor()
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
     table_exists = cursor.fetchone()
@@ -254,9 +254,9 @@ def update_database_table(conn, table_name, logger):
         try:
             cursor.execute(create_table_query)
             conn.commit()
-            logger.info(f"Table {table_name} created successfully.")
+            info_logger.info(f"Table {table_name} created successfully.")
         except mysql.connector.Error as e:
-            logger.error(f"Table creation could not be executed: {e}")
+            info_logger.error(f"Table creation could not be executed: {e}")
 
 
 def update_database_columns(conn, columns, table_name, info_logger):
@@ -348,7 +348,7 @@ def update_metadata_in_database(
     conn,
     metadata,
     table_name,
-    logger,
+    info_logger,
     extraction_logger,
 ):
     cursor = conn.cursor()
@@ -411,7 +411,7 @@ def update_metadata_in_database(
             f"Metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} has been updated in the database."
         )
     except Exception as e:
-        logger.error(
+        info_logger.error(
             f"Failed to update metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} in the database. Error: {e}"
         )
 
@@ -487,7 +487,7 @@ def start_metadata_extractor():
                 if filename.endswith(".png"):
                     image_path = os.path.join(root, filename)
                     debug_logger.debug(f"Found image file: {image_path}")
-                    metadata = get_image_metadata(image_path, logger)
+                    metadata = get_image_metadata(image_path, info_logger)
                     debug_logger.debug(f"Got metadata from image file: {image_path}")
 
                     # Extract metadata from parameter
@@ -518,7 +518,7 @@ def start_metadata_extractor():
                             conn,
                             extracted_metadata,
                             table_name,
-                            debug_logger,
+                            info_logger,
                             extraction_logger,
                         )
                         inserted_count += 1
