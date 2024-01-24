@@ -315,7 +315,7 @@ def check_if_metadata_equal(
             else:
                 return True
         else:
-            debug_logger.error("No existing record found for metadata.")
+            debug_logger.info("No existing record found for metadata.")
             return True  # Consider it not equal as there is no existing record
     except Exception as e:
         info_logger.error(f"Error checking metadata equality: {e}")
