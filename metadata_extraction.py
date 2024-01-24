@@ -224,36 +224,18 @@ def connect_database(host, user, password, database_name, info_logger):
         info_logger.error(f"Failed to connect to the database: {e}")
 
 
-def update_database_table(conn, table_name, info_logger):
+def update_database_table(conn, table_name, columns, info_logger):
     cursor = conn.cursor()
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
     table_exists = cursor.fetchone()[0]
     if table_exists is None:
         # Create the table if it doesn't exist
+        column_definitions = ", ".join([f"{column} TEXT" for column in columns])
         create_table_query = f"""
-            CREATE TABLE {table_name} (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                FileName VARCHAR(255),
-                Directory TEXT,
-                FileSize TEXT,
-                CreatedAt TEXT,
-                PositivePrompt TEXT,
-                NegativePrompt TEXT,
-                Steps TEXT,
-                Sampler TEXT,
-                CFGScale TEXT,
-                Seed TEXT,
-                ImageSize TEXT,
-                ModelHash TEXT,
-                Model TEXT,
-                SeedResizeFrom TEXT,
-                DenoisingStrength TEXT,
-                Version TEXT,
-                NSFWProbability TEXT,
-                MD5 TEXT,
-                SHA1 TEXT,
-                SHA256 TEXT
-            )
+        CREATE TABLE {table_name} (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            {column_definitions}
+        )
         """
 
         try:
@@ -262,6 +244,8 @@ def update_database_table(conn, table_name, info_logger):
             info_logger.info(f"Table {table_name} created successfully.")
         except mysql.connector.Error as e:
             info_logger.error(f"Table creation could not be executed: {e}")
+        finally:
+            cursor.close()
 
 
 def update_database_columns(conn, columns, table_name, info_logger):
@@ -281,6 +265,8 @@ def update_database_columns(conn, columns, table_name, info_logger):
                 info_logger.info(f"Column {column} added successfully.")
             except mysql.connector.Error as e:
                 info_logger.error(f"Error adding column {column}: {e}")
+            finally:
+                cursor.close()
 
 
 def check_if_metadata_exists(conn, metadata, table_name, debug_logger):
@@ -302,90 +288,59 @@ def check_if_metadata_exists(conn, metadata, table_name, debug_logger):
     return row_count
 
 
-def check_if_metadata_equal(conn, metadata, table_name, debug_logger):
+def check_if_metadata_equal(conn, metadata, table_name, columns, debug_logger):
     cursor = conn.cursor()
 
-    # Check if the data already exists in the database
+    # Build the SELECT query and extract columns for existing metadata
+    select_columns = ", ".join(columns)
     query = f"""
-    SELECT * FROM {table_name}
-    WHERE SHA256 = %s
+        SELECT {select_columns}
+        FROM {table_name}
+        WHERE SHA256 = %s
     """
-    cursor.execute(query, (metadata.get("SHA256", ""),))
-    result = cursor.fetchone()
 
-    if result:
-        existing_metadata = {
-            "File Name": result[1],
-            "Directory": result[2],
-            "File Size": result[3],
-            "Created At": result[4],
-            "Positive Prompt": result[5],
-            "Negative Prompt": result[6],
-            "Steps": result[7],
-            "Sampler": result[8],
-            "CFG Scale": result[9],
-            "Seed": result[10],
-            "Image Size": result[11],
-            "Model Hash": result[12],
-            "Model": result[13],
-            "Seed Resize From": result[14],
-            "Denoising Strength": result[15],
-            "Version": result[16],
-            "NSFW Probability": result[17],
-            "MD5": result[18],
-            "SHA1": result[19],
-            "SHA256": result[20],
-        }
+    try:
+        cursor.execute(query, (metadata.get("SHA256", ""),))
+        result = cursor.fetchone()
 
-        # Check if the metadata is equal
-        if metadata == existing_metadata:
-            debug_logger.info("Metadata is already in the database and is equal.")
-            return False
+        if result:
+            existing_metadata = {columns[i]: result[i + 1] for i in range(len(columns))}
+
+            # Check if the metadata is equal
+            if metadata == existing_metadata:
+                debug_logger.info("Metadata is already in the database and is equal.")
+                return False
+            else:
+                return True
         else:
-            return True
-    else:
-        debug_logger.error("No existing record found for metadata.")
-
-    cursor.close()
+            debug_logger.error("No existing record found for metadata.")
+            return True  # Consider it not equal as there is no existing record
+    except Exception as e:
+        debug_logger.error(f"Error checking metadata equality: {e}")
+        return True
+    finally:
+        cursor.close()
 
 
 # Function to insert metadata into the MySQL database if it doesn't already exist
 def insert_metadata_into_database(
-    conn, metadata, table_name, info_logger, extraction_logger
+    conn, metadata, table_name, columns, info_logger, extraction_logger
 ):
     cursor = conn.cursor()
+
+    column_names = ", ".join(columns)
+    value_placeholders = ", ".join(["%s" for _ in columns])
     try:
-        cursor.execute(
-            f"""
-        INSERT INTO {table_name} (
-            FileName, Directory, FileSize, CreatedAt, PositivePrompt, NegativePrompt, Steps, Sampler, CFGScale, Seed, 
-            ImageSize, ModelHash, Model, SeedResizeFrom, DenoisingStrength, Version, NSFWProbability, MD5, SHA1, SHA256
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """,
-            (
-                metadata.get("File Name", ""),
-                metadata.get("Directory", ""),
-                metadata.get("File Size", ""),
-                metadata.get("Created at", ""),
-                metadata.get("Positive prompt", ""),
-                metadata.get("Negative prompt", ""),
-                metadata.get("Steps", ""),
-                metadata.get("Sampler", ""),
-                metadata.get("CFG scale", ""),
-                metadata.get("Seed", ""),
-                metadata.get("Size", ""),
-                metadata.get("Model hash", ""),
-                metadata.get("Model", ""),
-                metadata.get("Seed resize from", ""),
-                metadata.get("Denoising strength", ""),
-                metadata.get("Version", ""),
-                metadata.get("NSFWProbability", ""),
-                metadata.get("MD5", ""),
-                metadata.get("SHA1", ""),
-                metadata.get("SHA256", ""),
-            ),
-        )
+        # Build and execute the SQL query
+        query = f"""
+            INSERT INTO {table_name} ({column_names})
+            VALUES ({value_placeholders})
+        """
+
+        # Extract values from metadata based on column order
+        values = [metadata.get(column, "") for column in columns]
+
+        cursor.execute(query, values)
         conn.commit()
         extraction_logger.info(
             f"Metadata from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} extracted and added to the database."
@@ -394,71 +349,33 @@ def insert_metadata_into_database(
         info_logger.error(
             f"Error while inserting metadata into database from {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')}. Error: {e}"
         )
+    finally:
+        cursor.close()
 
 
 def update_metadata_in_database(
-    conn,
-    metadata,
-    table_name,
-    info_logger,
-    extraction_logger,
+    conn, metadata, table_name, columns, info_logger, extraction_logger
 ):
     cursor = conn.cursor()
 
-    # Update the database record
-    update_query = f"""
-        UPDATE {table_name}
-        SET
-            FileName = %s,
-            Directory = %s,
-            FileSize = %s,
-            CreatedAt = %s,
-            PositivePrompt = %s,
-            NegativePrompt = %s,
-            Steps = %s,
-            Sampler = %s,
-            CFGScale = %s,
-            Seed = %s,
-            ImageSize = %s,
-            ModelHash = %s,
-            Model = %s,
-            SeedResizeFrom = %s,
-            DenoisingStrength = %s,
-            Version = %s,
-            NSFWProbability = %s,
-            MD5 = %s,
-            SHA1 = %s,
-            SHA256 = %s
-        WHERE SHA256 = %s
-    """
+    # Build the SET clause for updating
+    set_clause = ", ".join([f"{column} = %s" for column in columns])
+
     try:
-        cursor.execute(
-            update_query,
-            (
-                metadata.get("File Name", ""),
-                metadata.get("Directory", ""),
-                metadata.get("File Size", ""),
-                metadata.get("Created at", ""),
-                metadata.get("Positive prompt", ""),
-                metadata.get("Negative prompt", ""),
-                metadata.get("Steps", ""),
-                metadata.get("Sampler", ""),
-                metadata.get("CFG scale", ""),
-                metadata.get("Seed", ""),
-                metadata.get("Size", ""),
-                metadata.get("Model hash", ""),
-                metadata.get("Model", ""),
-                metadata.get("Seed resize from", ""),
-                metadata.get("Denoising strength", ""),
-                metadata.get("Version", ""),
-                metadata.get("NSFWProbability", ""),
-                metadata.get("MD5", ""),
-                metadata.get("SHA1", ""),
-                metadata.get("SHA256", ""),
-                metadata.get("SHA256", ""),  # Use SHA256 as the WHERE condition
-            ),
-        )
+        # Build and execute the SQL query
+        query = f"""
+            UPDATE {table_name}
+            SET {set_clause}
+            WHERE SHA256 = %s
+        """
+
+        # Extract values from metadata based on column order
+        values = [metadata.get(column, "") for column in columns]
+        values.append(metadata.get("SHA256", ""))  # Append SHA256 for WHERE condition
+
+        cursor.execute(query, values)
         conn.commit()
+
         extraction_logger.info(
             f"Metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} has been updated in the database."
         )
@@ -466,6 +383,8 @@ def update_metadata_in_database(
         info_logger.error(
             f"Failed to update metadata for {metadata.get('File Name', '')} in folder {metadata.get('Directory', '')} in the database. Error: {e}"
         )
+    finally:
+        cursor.close()
 
 
 def start_metadata_extractor():
