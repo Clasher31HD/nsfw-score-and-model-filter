@@ -288,7 +288,9 @@ def check_if_metadata_exists(conn, metadata, table_name, debug_logger):
     return row_count
 
 
-def check_if_metadata_equal(conn, metadata, table_name, columns, debug_logger):
+def check_if_metadata_equal(
+    conn, metadata, table_name, columns, info_logger, debug_logger
+):
     cursor = conn.cursor()
 
     # Build the SELECT query and extract columns for existing metadata
@@ -316,7 +318,7 @@ def check_if_metadata_equal(conn, metadata, table_name, columns, debug_logger):
             debug_logger.error("No existing record found for metadata.")
             return True  # Consider it not equal as there is no existing record
     except Exception as e:
-        debug_logger.error(f"Error checking metadata equality: {e}")
+        info_logger.error(f"Error checking metadata equality: {e}")
         return True
     finally:
         cursor.close()
@@ -495,7 +497,12 @@ def start_metadata_extractor():
                     elif row_count == 1:
                         # Check if metadata in database is the same as the extracted metadata
                         equal = check_if_metadata_equal(
-                            conn, extracted_metadata, table_name, columns, debug_logger
+                            conn,
+                            extracted_metadata,
+                            table_name,
+                            columns,
+                            info_logger,
+                            debug_logger,
                         )
 
                         # Update metadata in database
