@@ -94,7 +94,9 @@ def get_image_metadata(image_path, info_logger):
         info_logger.error(f"An error occurred: {str(e)}")
 
 
-def extract_metadata_from_parameter(metadata, image_path, nsfw, info_logger, debug_logger):
+def extract_metadata_from_parameter(
+    metadata, image_path, nsfw, info_logger, debug_logger
+):
     metadata_dict = {}
 
     if nsfw:
@@ -222,7 +224,7 @@ def connect_database(host, user, password, database_name, info_logger):
 def update_database_table(conn, table_name, info_logger):
     cursor = conn.cursor()
     cursor.execute(f"SHOW TABLES LIKE '{table_name}'")
-    table_exists = cursor.fetchone()
+    table_exists = cursor.fetchone()[0]
     if table_exists is None:
         # Create the table if it doesn't exist
         create_table_query = f"""
@@ -287,7 +289,7 @@ def check_if_metadata_exists(conn, metadata, table_name, debug_logger):
     WHERE SHA256 = %s
     """
     cursor.execute(query, (metadata.get("SHA256", ""),))
-    row_count = cursor.fetchone()
+    row_count = cursor.fetchone()[0]
     if row_count:
         debug_logger.info(f"Number of rows with the same SHA256 value: {row_count}")
     else:
