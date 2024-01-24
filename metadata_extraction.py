@@ -311,7 +311,7 @@ def check_if_metadata_equal(
 
             # Check if the metadata is equal
             equal_values = all(
-                metadata.get(key, None) == existing_metadata[key] for key in columns
+                metadata[key] == str(existing_metadata[key]) for key in columns
             )
 
             if equal_values:
