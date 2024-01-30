@@ -16,7 +16,7 @@ def read_configuration():
     except FileNotFoundError:
         raise FileNotFoundError("metadata_config.yml file not found.")
     except yaml.YAMLError as e:
-        raise ValueError(f"Error parsing YAML in yts_config.yml: {e}")
+        raise ValueError(f"Error parsing YAML in metadata_config.yml: {e}")
 
 
 def create_logger(
@@ -29,7 +29,7 @@ def create_logger(
     file_handler.setLevel(level)
 
     all_file_handler = RotatingFileHandler(
-        os.path.join(logs_directory, f"YTS{name.capitalize()}.log"),
+        os.path.join(logs_directory, f"Extraction{name.capitalize()}.log"),
         maxBytes=max_log_size,
         backupCount=5,
     )
