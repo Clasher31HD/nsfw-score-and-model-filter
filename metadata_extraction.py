@@ -48,6 +48,7 @@ def configure_loggers():
     config = read_configuration()
     level = config["level"]
     logs_directory = config["logs_directory"]
+    prefix = config["prefix"]
     max_log_size = 10 * 1024 * 1024  # 10MB
     year = str(datetime.now().strftime("%Y"))
     month = str(datetime.now().strftime("%m"))
