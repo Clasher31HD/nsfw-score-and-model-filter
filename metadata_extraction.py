@@ -20,7 +20,7 @@ def read_configuration():
 
 
 def create_logger(
-    name, log_file, logs_directory, level=logging.DEBUG, max_log_size=10 * 1024 * 1024
+    name, log_file, logs_directory, prefix, level=logging.DEBUG, max_log_size=10 * 1024 * 1024
 ):
     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 
@@ -29,7 +29,7 @@ def create_logger(
     file_handler.setLevel(level)
 
     all_file_handler = RotatingFileHandler(
-        os.path.join(logs_directory, f"Extraction{name.capitalize()}.log"),
+        os.path.join(logs_directory, f"{prefix}{name.capitalize()}.log"),
         maxBytes=max_log_size,
         backupCount=5,
     )
@@ -59,22 +59,25 @@ def configure_loggers():
 
     info_logger = create_logger(
         "info",
-        os.path.join(directory_path, f"{date}-ExtractorInfo.log"),
+        os.path.join(directory_path, f"{date}-{prefix}Info.log"),
         logs_directory,
+        prefix,
         level,
         max_log_size,
     )
     extraction_logger = create_logger(
         "extraction",
-        os.path.join(directory_path, f"{date}-ExtractorExtraction.log"),
+        os.path.join(directory_path, f"{date}-{prefix}Extraction.log"),
         logs_directory,
+        prefix,
         level,
         max_log_size,
     )
     debug_logger = create_logger(
         "debug",
-        os.path.join(directory_path, f"{date}-ExtractorDebug.log"),
+        os.path.join(directory_path, f"{date}-{prefix}Debug.log"),
         logs_directory,
+        prefix,
         level,
         max_log_size,
     )

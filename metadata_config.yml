@@ -7,3 +7,4 @@ image_folder:
 use_yesterday:
 nsfw_probability:
 log_by_day:
+prefix:
